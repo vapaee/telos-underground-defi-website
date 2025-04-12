@@ -5,7 +5,11 @@
     "compilerOptions": {
         "baseUrl": "./", // Set the base URL to the project root
         "paths": {
-        "@app/*": ["src/app/*"] // Define the alias
+            "@app/*": ["src/app/*"], // Define the alias
+            // Web3Octopus packages
+            "@vapaee/w3o-core": ["src-w3o/w3o-core/lib/index.d.ts"],
+            "@vapaee/w3o-antelope": ["src-w3o/w3o-antelope/lib/index.d.ts"],
+            "@vapaee/w3o-telos": ["src-w3o/w3o-telos/lib/index.d.ts"],
         },
         "outDir": "./dist/out-tsc",
         "strict": true,

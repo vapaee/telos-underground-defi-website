@@ -7,7 +7,7 @@ cd telos-underground
 # use the correct npm version to install and run it
 nvm use v22.12.0;
 npm i
-npx ng serve
+npm run serve
 ```
 
 Fast
