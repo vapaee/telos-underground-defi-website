@@ -47,6 +47,7 @@ export class MessageFactoryComponent implements OnInit, OnDestroy {
     }
 
     ngOnDestroy(): void {
+
         // Unsubscribe to avoid memory leaks
         if (this.messagesSubscription) {
             this.messagesSubscription.unsubscribe();
