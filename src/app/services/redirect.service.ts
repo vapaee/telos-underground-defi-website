@@ -4,7 +4,7 @@ import { BreakpointObserver } from '@angular/cdk/layout';
 import { SessionService } from '@app/services/session-kit.service';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { BREAKPOINT } from 'src/types';
+import { BREAKPOINT } from '@app/types';
 
 @Injectable({
     providedIn: 'root',

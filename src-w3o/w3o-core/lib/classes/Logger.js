@@ -19,6 +19,9 @@ class LoggerContext {
     get root() {
         return this.parentContext ? this.parentContext.root : this;
     }
+    get indent() {
+        return '  '.repeat(this.levelValue);
+    }
     id() {
         return this.idValue;
     }
@@ -50,7 +53,7 @@ class LoggerContext {
             m: 'log',
             args
         });
-        const messagePrefix = `${this.id()} ${this.timestamp()}${'  '.repeat(this.level())}}`;
+        const messagePrefix = `${this.id()} ${this.timestamp()}${this.indent}`;
         console.log(messagePrefix, ...args);
     }
     error(...args) {
@@ -59,7 +62,7 @@ class LoggerContext {
             m: 'error',
             args
         });
-        const messagePrefix = `${this.id()} ${this.timestamp()}${'  '.repeat(this.level())}}`;
+        const messagePrefix = `${this.id()} ${this.timestamp()}${this.indent}`;
         console.error(messagePrefix, ...args);
     }
     info(...args) {
@@ -68,7 +71,7 @@ class LoggerContext {
             m: 'log',
             args
         });
-        const messagePrefix = `${this.id()} ${this.timestamp()}${'  '.repeat(this.level())}}`;
+        const messagePrefix = `${this.id()} ${this.timestamp()}${this.indent}`;
         console.info(messagePrefix, ...args);
     }
     debug(...args) {
@@ -77,7 +80,7 @@ class LoggerContext {
             m: 'log',
             args
         });
-        const messagePrefix = `${this.id()} ${this.timestamp()}${'  '.repeat(this.level())}}`;
+        const messagePrefix = `${this.id()} ${this.timestamp()}${this.indent}`;
         console.debug(messagePrefix, ...args);
     }
     warn(...args) {
@@ -86,7 +89,7 @@ class LoggerContext {
             m: 'log',
             args
         });
-        const messagePrefix = `${this.id()} ${this.timestamp()}${'  '.repeat(this.level())}}`;
+        const messagePrefix = `${this.id()} ${this.timestamp()}${this.indent}`;
         console.warn(messagePrefix, ...args);
     }
 }

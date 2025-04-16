@@ -1,16 +1,20 @@
 // w3o-core/src/classes/Web3Octopus.ts
 
+import { BehaviorSubject, filter } from 'rxjs';
 import {
-    Logger,
-    LoggerContext,
-    W3oError,
-    W3oModuleManager,
-    W3oNetworkManager,
-    W3oSessionManager,
-} from '.';
-import { W3oGlobalSettings, W3oInstance, W3oIServices, W3oNetworkSupportSettings } from '../types';
+    W3oGlobalSettings,
+    W3oInstance,
+    W3oIServices,
+    W3oNetworkSupportSettings,    
+} from '../types';
+
+import { Logger, LoggerContext } from './Logger';
 import { W3oAuthManager } from './W3oAuthManager';
 import { W3oService } from './W3oService';
+import { W3oNetworkManager } from './W3oNetworkManager';
+import { W3oSessionManager } from './W3oSessionManager';
+import { W3oModuleManager } from './W3oModuleManager';
+import { W3oError } from './W3oError';
 
 const logger = new Logger('Web3Octopus');
 
@@ -25,7 +29,10 @@ interface WithSnapshot {
 
 // Main singleton class that acts as the entry point, includes methods to add network support, register modules, and initialize the state
 export class Web3Octopus<Tw3o extends W3oIServices & WithSnapshot> implements W3oInstance {
+
     private __initialized = false;
+    public onInitialized$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(this.__initialized);
+    
     private __services: W3oService[] = [];
     private __serviceCtrl: Tw3o | null = null;
     private __networkCtrl: W3oNetworkManager | null = null;
@@ -42,13 +49,8 @@ export class Web3Octopus<Tw3o extends W3oIServices & WithSnapshot> implements W3
         return Web3Octopus.__instance;
     }
 
-    constructor(settings: W3oGlobalSettings = defaultSettings, parent?: LoggerContext) {
-        const context = logger.method('constructor', {settings}, parent);
-        this.__authCtrl = new W3oAuthManager(settings, context);
-        this.__networkCtrl = new W3oNetworkManager(settings, context);
-        this.__sessionCtrl = new W3oSessionManager(settings, context);
-        this.__meduleCtrl = new W3oModuleManager(settings, context);
-        // set the instance to this object
+    constructor(parent?: LoggerContext) {
+        logger.method('constructor', parent);
         Web3Octopus.__instance = this;
     }
 
@@ -99,28 +101,47 @@ export class Web3Octopus<Tw3o extends W3oIServices & WithSnapshot> implements W3
             throw new W3oError(W3oError.ALREADY_INITIALIZED, { name: 'Web3Octopus', message: 'Network support can only be added before initialization' });
         }
 
-        // Add support for the network
-        for (const network of support.networks) {
-            this.networks.addNetwork(network, context);
-        }
+        // at this point network and auth managers are not created yet
+        // so we need to subscribe to the initialized$ observable to add network and auth support
+        const sub = this.onInitialized$.pipe(
+            filter((initialized) => initialized), // only proceed when initialized
+        ).subscribe(() => {
+            console.assert(!!this.networks, context.indent + 'Network manager not created');
+            console.assert(!!this.auth, context.indent + 'Auth manager not created');
 
-        // Add support for authentication for this type of network
-        for (const auth of support.auth) {
-            this.auth.addAuthSupport(auth, context);
-        }
+            // Add support for the network
+            for (const network of support.networks) {
+                this.networks.addNetwork(network, context);
+            }
+
+            // Add support for authentication for this type of network
+            for (const auth of support.auth) {
+                this.auth.addAuthSupport(auth, context);
+            }
+
+            sub.unsubscribe(); // Unsubscribe after adding support
+        });
     }
-
-    // Method to initialize the framework state
-    init(parent?: LoggerContext): void {
+    
+    init(settings: W3oGlobalSettings = defaultSettings, parent?: LoggerContext): void {
         const context = logger.method('init', parent);
         if (this.__initialized) {
             throw new W3oError(W3oError.ALREADY_INITIALIZED, { name: 'Web3Octopus', message: 'Web3Octopus can only be initialized once' });
         }
         this.__initialized = true;
+        this.__networkCtrl = new W3oNetworkManager(settings, context);
+        this.__sessionCtrl = new W3oSessionManager(this, settings, context);
+        this.__authCtrl = new W3oAuthManager(this, settings, context);
+        this.__meduleCtrl = new W3oModuleManager(settings, context);
+        this.__serviceCtrl = this.createService(context);
+
         this.networks.init(context);
         this.sessions.init(context);
-        this.__serviceCtrl = this.createService(context);
-        context.log('Initialized successfully');
+        this.auth.init(context);
+        this.modules.init(context);
+        // imprimir un ícono de un check verde seguido del texto: "Web3Octopus initialized"
+        console.log(`✅ Web3Octopus initialized successfully!!`);
+        this.onInitialized$.next(this.__initialized);
     }
 
     // Method to register services
@@ -180,6 +201,7 @@ export class Web3Octopus<Tw3o extends W3oIServices & WithSnapshot> implements W3
             throw new W3oError(W3oError.NOT_INITIALIZED, { message: 'snapshots can only be taken after initialization' });
         }
         return {
+            class: 'Web3Octopus',
             auth: this.auth.snapshot(),
             networks: this.networks.snapshot(),
             sessions: this.sessions.snapshot(),

@@ -19,7 +19,7 @@ export class LoggerContext {
     private logsArray: LoggedLine[];
     private levelValue: number;
     private startTime: number;
-
+    
     constructor(methodName: string, args: any, parent?: LoggerContextParent) {
         this.idValue = LoggerContext.generateUniqueId();
         this.parentContext = parent;
@@ -38,6 +38,10 @@ export class LoggerContext {
 
     get root(): LoggerContext {
         return this.parentContext ? this.parentContext.root : this;
+    }
+
+    get indent(): string {
+        return '  '.repeat(this.levelValue);
     }
 
     id(): string {
@@ -78,7 +82,7 @@ export class LoggerContext {
             m: 'log',
             args
         });
-        const messagePrefix = `${this.id()} ${this.timestamp()}${'  '.repeat(this.level())}}`;
+        const messagePrefix = `${this.id()} ${this.timestamp()}${this.indent}`;
         console.log(messagePrefix, ...args);
     }
 
@@ -88,7 +92,7 @@ export class LoggerContext {
             m: 'error',
             args
         });
-        const messagePrefix = `${this.id()} ${this.timestamp()}${'  '.repeat(this.level())}}`;
+        const messagePrefix = `${this.id()} ${this.timestamp()}${this.indent}`;
         console.error(messagePrefix, ...args);
     }
 
@@ -98,7 +102,7 @@ export class LoggerContext {
             m: 'log',
             args
         });
-        const messagePrefix = `${this.id()} ${this.timestamp()}${'  '.repeat(this.level())}}`;
+        const messagePrefix = `${this.id()} ${this.timestamp()}${this.indent}`;
         console.info(messagePrefix, ...args);
     }
 
@@ -108,7 +112,7 @@ export class LoggerContext {
             m: 'log',
             args
         });
-        const messagePrefix = `${this.id()} ${this.timestamp()}${'  '.repeat(this.level())}}`;
+        const messagePrefix = `${this.id()} ${this.timestamp()}${this.indent}`;
         console.debug(messagePrefix, ...args);
     }
 
@@ -118,7 +122,7 @@ export class LoggerContext {
             m: 'log',
             args
         });
-        const messagePrefix = `${this.id()} ${this.timestamp()}${'  '.repeat(this.level())}}`;
+        const messagePrefix = `${this.id()} ${this.timestamp()}${this.indent}`;
         console.warn(messagePrefix, ...args);
     }
 }

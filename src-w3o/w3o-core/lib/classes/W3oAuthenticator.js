@@ -6,10 +6,11 @@ const rxjs_1 = require("rxjs");
 const _1 = require(".");
 const logger = new _1.Logger('W3oAuthenticator');
 class W3oAuthenticator {
-    constructor(support) {
+    constructor(support, parent) {
         this.support = support;
         this.__account = null;
         this.__sessionId = '';
+        logger.method('constructor', { support }, parent);
     }
     // Getter to obtain the user's account (throws an exception if not authenticated)
     get account() {

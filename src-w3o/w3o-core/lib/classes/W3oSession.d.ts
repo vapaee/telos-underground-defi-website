@@ -1,5 +1,7 @@
-import { LoggerContext, W3oAuthenticator, W3oNetwork } from '.';
 import { W3oAddress } from '../types';
+import { LoggerContext } from './Logger';
+import { W3oAuthenticator } from './W3oAuthenticator';
+import { W3oNetwork } from './W3oNetwork';
 export declare class W3oSession {
     readonly address: W3oAddress;
     readonly authenticator: W3oAuthenticator;

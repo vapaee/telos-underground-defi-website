@@ -1,15 +1,11 @@
-import {
-    Logger,
-    LoggerContext,
-    W3oError,
-    W3oModule,
-} from '.';
-
 import { combineLatest, BehaviorSubject } from 'rxjs';
 import {
     W3oGlobalSettings,
     W3oModuleInstance
 } from '../types';
+import { Logger, LoggerContext } from './Logger';
+import { W3oModule } from './W3oModule';
+import { W3oError } from './W3oError';
 
 const logger = new Logger('W3oModuleManager');
 
@@ -31,7 +27,7 @@ export class W3oModuleManager implements W3oModuleInstance {
     }
 
     init(parent: LoggerContext) {
-        logger.method('init', undefined, parent);
+        const context = logger.method('init', undefined, parent);
         if (this.__initialized) {
             throw new W3oError(W3oError.ALREADY_INITIALIZED, { name: 'W3oModuleManager', message: 'Module manager already initialized' });
         }
@@ -49,7 +45,7 @@ export class W3oModuleManager implements W3oModuleInstance {
             }
             if (module.w3oRequire.length === 0) {
                 // Si no tiene requerimientos lo iniciamos inmediatamente
-                module.init();
+                module.init(context);
             } else {
                 // si tiene requerimientos, esperamos a que todos los requerimientos estén inicializados
                 const requirements: BehaviorSubject<boolean>[] = module.w3oRequire.map((w3oId) => this.__modules[w3oId].initialized$);
@@ -64,7 +60,7 @@ export class W3oModuleManager implements W3oModuleInstance {
                             message: `Module ${module.w3oId} requires modules ${missing_init.join(', ')} to be initialized`
                         });
                     }
-                    module.init()
+                    module.init(context);
                 });
             }
         }

@@ -1,4 +1,4 @@
-import { W3oContract } from '.';
+import { W3oContract } from "./W3oContract";
 export declare abstract class W3oToken {
     get symbol(): string;
     get address(): string;

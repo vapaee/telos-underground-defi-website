@@ -1,7 +1,7 @@
 import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Balance, TransferStatus } from 'src/types';
+import { Balance, TransferStatus } from '@app/types';
 import { TokenBalanceService } from '@app/services/token-balance.service';
 import { TokenTransferService } from '@app/services/token-transfer.service';
 import { SessionService } from '@app/services/session-kit.service';

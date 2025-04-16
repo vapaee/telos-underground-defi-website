@@ -4,15 +4,11 @@ import { Observable } from 'rxjs';
 import { from } from 'rxjs';
 import { mergeMap } from 'rxjs/operators';
 import {
-    Logger,
-    LoggerContext,
-    W3oContract,
-    W3oNetwork,
-} from '.';
-
-import {
     W3oAddress
 } from '../types';
+import { Logger, LoggerContext } from './Logger';
+import { W3oContract } from './W3oContract';
+import { W3oNetwork } from './W3oNetwork';
 
 const logger = new Logger('W3oContractManager');
 

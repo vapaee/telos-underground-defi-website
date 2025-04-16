@@ -15,20 +15,23 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 __exportStar(require("./Logger"), exports);
-__exportStar(require("./W3oAccount"), exports);
-__exportStar(require("./W3oAuthenticator"), exports);
-__exportStar(require("./W3oAuthManager"), exports);
-__exportStar(require("./W3oAuthSupport"), exports);
-__exportStar(require("./W3oContract"), exports);
-__exportStar(require("./W3oContractManager"), exports);
+// Basics
 __exportStar(require("./W3oError"), exports);
-__exportStar(require("./W3oModule"), exports);
-__exportStar(require("./W3oModuleManager"), exports);
-__exportStar(require("./W3oNetwork"), exports);
-__exportStar(require("./W3oNetworkManager"), exports);
-__exportStar(require("./W3oSession"), exports);
-__exportStar(require("./W3oSessionManager"), exports);
-__exportStar(require("./W3oToken"), exports);
 __exportStar(require("./W3oTransactionResponse"), exports);
+__exportStar(require("./W3oContract"), exports);
+__exportStar(require("./W3oModule"), exports);
+// Authentication
+__exportStar(require("./W3oAuthenticator"), exports);
+__exportStar(require("./W3oAccount"), exports);
+__exportStar(require("./W3oService"), exports);
+__exportStar(require("./W3oToken"), exports);
+__exportStar(require("./W3oNetwork"), exports);
+__exportStar(require("./W3oSession"), exports);
+__exportStar(require("./W3oAuthSupport"), exports);
+__exportStar(require("./W3oModuleManager"), exports);
+__exportStar(require("./W3oNetworkManager"), exports);
+__exportStar(require("./W3oContractManager"), exports);
+__exportStar(require("./W3oSessionManager"), exports);
 __exportStar(require("./Web3Octopus"), exports);
+__exportStar(require("./W3oAuthManager"), exports);
 //# sourceMappingURL=index.js.map

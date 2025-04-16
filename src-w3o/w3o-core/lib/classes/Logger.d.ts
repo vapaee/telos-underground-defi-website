@@ -16,6 +16,7 @@ export declare class LoggerContext {
     constructor(methodName: string, args: any, parent?: LoggerContextParent);
     static generateUniqueId(): string;
     get root(): LoggerContext;
+    get indent(): string;
     id(): string;
     parent(): LoggerContextParent;
     args(): any;

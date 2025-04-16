@@ -6,7 +6,7 @@ export declare class W3oAuthenticator {
     readonly support: W3oAuthSupport;
     private __account;
     private __sessionId;
-    constructor(support: W3oAuthSupport);
+    constructor(support: W3oAuthSupport, parent: LoggerContext);
     get account(): W3oAccount;
     get name(): string;
     get type(): string;

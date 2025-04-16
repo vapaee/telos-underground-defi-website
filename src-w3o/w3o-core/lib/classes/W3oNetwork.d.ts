@@ -1,6 +1,9 @@
 import { Observable } from 'rxjs';
-import { LoggerContext, W3oContractManager, W3oModule, W3oToken } from '.';
 import { W3oNetworkSettings, W3oNetworkType } from '../types';
+import { LoggerContext } from './Logger';
+import { W3oModule } from './W3oModule';
+import { W3oContractManager } from './W3oContractManager';
+import { W3oToken } from './W3oToken';
 export declare abstract class W3oNetwork extends W3oModule {
     readonly settings: W3oNetworkSettings;
     private __contractCtrl;
@@ -14,5 +17,4 @@ export declare abstract class W3oNetwork extends W3oModule {
     abstract getSystemToken(): W3oToken;
     abstract getTokensList(): W3oToken[];
     abstract updateState(): Observable<void>;
-    abstract snapshot(): any;
 }

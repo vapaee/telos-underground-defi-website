@@ -2,24 +2,31 @@
 
 import { Observable } from 'rxjs';
 import {
-    Logger,
-    LoggerContext,
-    W3oAuthenticator,
-    W3oError,
-    W3oNetwork,
-    W3oSession,
-    Web3Octopus,
-} from '.';
-
-import {
+    W3oAddress,
     W3oAuthInstance,
     W3oAuthSupportName,
     W3oGlobalSettings,
+    W3oNetworkName,
     W3oNetworkType
 } from '../types';
+
+import { Logger, LoggerContext } from './Logger';
 import { W3oAuthSupport } from './W3oAuthSupport';
+import { W3oNetwork } from './W3oNetwork';
+import { W3oAuthenticator } from './W3oAuthenticator';
+import { W3oSession } from './W3oSession';
+import { W3oError } from './W3oError';
 
 const logger = new Logger('W3oAuthManager');
+
+interface W3oOctopusInstanceI {
+    networks: {
+        getNetwork(name: W3oNetworkName, parent: LoggerContext): W3oNetwork;
+    },
+    sessions: {
+        createCurrentSession(address: W3oAddress, authenticator: W3oAuthenticator, network: W3oNetwork, parent: LoggerContext): W3oSession;
+    },
+}
 
 // Represents a contract manager, including methods to add, get, and list contracts
 export class W3oAuthManager implements W3oAuthInstance {
@@ -27,7 +34,11 @@ export class W3oAuthManager implements W3oAuthInstance {
     private __byType: { [authType: string]: W3oAuthSupport[] } = {};
     private __byName: { [authName: string]: W3oAuthSupport } = {};
     
-    constructor(settings: W3oGlobalSettings, parent: LoggerContext) {
+    constructor(
+        private instance: W3oOctopusInstanceI,
+        settings: W3oGlobalSettings,
+        parent: LoggerContext
+    ) {
         logger.method('constructor', {settings}, parent);
     }
 
@@ -38,7 +49,7 @@ export class W3oAuthManager implements W3oAuthInstance {
             throw new W3oError(W3oError.ALREADY_INITIALIZED, { name: 'W3oAuthManager', message: 'Auth manager already initialized' });
         }
         this.__initialized = true;
-        context.error('Not implemented yet');
+        context.error('W3oAuthManager.init() Not implemented yet');
     }
 
     // Method to add an authenticator to the manager
@@ -85,7 +96,7 @@ export class W3oAuthManager implements W3oAuthInstance {
         const obs = new Observable<W3oSession>(subscriber => {
             try {
                 // 1. Get the network instance
-                const networkInstance: W3oNetwork = Web3Octopus.instance.networks.getNetwork(network, context);
+                const networkInstance: W3oNetwork = this.instance.networks.getNetwork(network, context);
 
                 // 2. Create an authenticator
                 const authenticator: W3oAuthenticator = auth.createAuthenticator(context);
@@ -94,7 +105,7 @@ export class W3oAuthManager implements W3oAuthInstance {
                 authenticator.login(network, context).subscribe({
                     next: account => {
                         // 4. Create a new session
-                        const session = Web3Octopus.instance.sessions.createCurrentSession(account.getAddress(), authenticator, networkInstance, context);
+                        const session = this.instance.sessions.createCurrentSession(account.getAddress(), authenticator, networkInstance, context);
 
                         // 5. Notify the subscriber of the created session
                         subscriber.next(session);
@@ -114,7 +125,7 @@ export class W3oAuthManager implements W3oAuthInstance {
     // Method to take a snapshot of the auth manager state
     snapshot(): any {
         const snapshot = {
-            byType: { ...this.__byType },
+            byType: {} as { [authType: string]: any },
             byName: [] as string[],
         };
 

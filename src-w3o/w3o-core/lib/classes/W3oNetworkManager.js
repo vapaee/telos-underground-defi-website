@@ -1,19 +1,11 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.W3oNetworkManager = void 0;
 // w3o-core\src\classes\W3oNetworkManager.ts
 const rxjs_1 = require("rxjs");
-const _1 = require(".");
-const logger = new _1.Logger('W3oNetworkManager');
+const Logger_1 = require("./Logger");
+const W3oError_1 = require("./W3oError");
+const logger = new Logger_1.Logger('W3oNetworkManager');
 // Representa un manejador de redes, incluyendo métodos para registrar, obtener y listar redes, y actualizar el estado
 class W3oNetworkManager {
     constructor(settings, parent) {
@@ -30,9 +22,9 @@ class W3oNetworkManager {
     get current() {
         const name = this.currentNetworkName;
         if (!name) {
-            throw new _1.W3oError(_1.W3oError.NETWORK_NOT_FOUND, { name });
+            throw new W3oError_1.W3oError(W3oError_1.W3oError.NETWORK_NOT_FOUND, { name });
         }
-        return this.getNetwork(name, _1.Logger.current);
+        return this.getNetwork(name, Logger_1.Logger.current);
     }
     // Getter para obtener la lista de redes
     get list() {
@@ -42,10 +34,10 @@ class W3oNetworkManager {
     init(parent) {
         const context = logger.method('init', undefined, parent);
         if (this.__initialized) {
-            throw new _1.W3oError(_1.W3oError.ALREADY_INITIALIZED, { name: 'W3oNetworkManager', message: 'Network manager already initialized' });
+            throw new W3oError_1.W3oError(W3oError_1.W3oError.ALREADY_INITIALIZED, { name: 'W3oNetworkManager', message: 'Network manager already initialized' });
         }
         this.__initialized = true;
-        context.log('Not implemented yet');
+        context.log('W3onetworkManager.init() Not implemented yet');
     }
     // Método para registrar una red
     addNetwork(network, parent) {
@@ -57,7 +49,7 @@ class W3oNetworkManager {
         logger.method('getNetwork', { name }, parent);
         const network = this.__networks.find(network => network.settings.name === name);
         if (!network) {
-            throw new _1.W3oError(_1.W3oError.NETWORK_NOT_FOUND, { name });
+            throw new W3oError_1.W3oError(W3oError_1.W3oError.NETWORK_NOT_FOUND, { name });
         }
         return network;
     }
@@ -66,7 +58,7 @@ class W3oNetworkManager {
         const context = logger.method('setCurrentNetwork', { name }, parent);
         const net = this.getNetwork(name, context);
         if (!net) {
-            throw new _1.W3oError(_1.W3oError.NETWORK_NOT_FOUND, { name });
+            throw new W3oError_1.W3oError(W3oError_1.W3oError.NETWORK_NOT_FOUND, { name });
         }
         this.onNetworkChange$.next(name);
     }
@@ -76,12 +68,10 @@ class W3oNetworkManager {
     }
     // Método para actualizar el estado de todas las redes
     // TODO: cambiar el tipo de retorno a Observable y hacer que los networks sean actualizados todos a las vez y no secuencialmente (remove this comment when implemented)
-    updateState() {
-        return __awaiter(this, void 0, void 0, function* () {
-            for (const network of this.__networks) {
-                yield network.updateState(); // asumir que devuelve un observable
-            }
-        });
+    async updateState() {
+        for (const network of this.__networks) {
+            await network.updateState(); // asumir que devuelve un observable
+        }
     }
     // Método para tomar una instantánea del estado del manejador de redes
     snapshot() {

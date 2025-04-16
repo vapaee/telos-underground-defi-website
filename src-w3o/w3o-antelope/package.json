@@ -9,13 +9,23 @@
     "lib"
   ],
   "scripts": {
+    "clear": "rm -rf lib node_modules; npm run clear-code",
+    "clear-code": "pwd; rm src/*/*.d.ts src/*/*.map src/*/*.js",
     "copy-version": "node scripts/copy_version.js",
     "build": "npm run copy-version; tsc",
     "test": "jest",
-    "prepublish": "npm run build",
-    "dev": "npm run copy-version; tsc -w",
+    "dev": "npm sun clear; pm run copy-version; tsc -w",
     "publish-on": "npm run build && npm publish --access public",
     "src": "node scripts/concatenate_src.js"
+  },
+  "for-develop": {
+    "@vapaee/w3o-core": "file:../w3o-core",
+    "@vapaee/w3o-antelope": "file:../w3o-antelope",
+    "@vapaee/w3o-telos": "file:../w3o-telos"
+  },
+  "dependencies": {
+    "rxjs": ">=6.0.0",
+    "@vapaee/w3o-core": "file:../w3o-core"
   },
   "devDependencies": {
     "@types/bn.js": "^5.1.5",
@@ -25,9 +35,6 @@
     "typescript": "^5.3.3"
   },
   "peerDependencies": {
-    "rxjs": ">=6.0.0"
-  },
-  "dependencies": {
     "rxjs": ">=6.0.0"
   }
 }

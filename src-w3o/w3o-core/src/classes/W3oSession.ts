@@ -1,10 +1,8 @@
-import {
-    Logger,
-    LoggerContext,
-    W3oAuthenticator,
-    W3oNetwork,
-} from '.';
 import { W3oAddress } from '../types';
+
+import { Logger, LoggerContext } from './Logger';
+import { W3oAuthenticator } from './W3oAuthenticator';
+import { W3oNetwork } from './W3oNetwork';
 
 const logger = new Logger('W3oSession');
 
@@ -21,7 +19,7 @@ export class W3oSession {
 
     constructor(
         public readonly address: W3oAddress, 
-        public readonly authenticator: W3oAuthenticator, 
+        public readonly authenticator: W3oAuthenticator,
         public readonly network: W3oNetwork,
         parent: LoggerContext,
     ) {

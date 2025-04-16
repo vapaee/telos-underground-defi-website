@@ -1,22 +1,30 @@
 // w3o-core\src\classes\W3oSessionManager.ts
 
 import { BehaviorSubject } from 'rxjs';
-import {
-    Logger,
-    LoggerContext,
-    W3oAuthenticator,
-    W3oError,
-    W3oNetwork,
-    W3oSession,
-    Web3Octopus,
-} from '.';
+
 import {
     W3oAddress,
+    W3oAuthSupportName,
     W3oGlobalSettings,
+    W3oNetworkName,
     W3oSessionInstance
 } from '../types';
+import { Logger, LoggerContext } from './Logger';
+import { W3oNetwork } from './W3oNetwork';
+import { W3oAuthenticator } from './W3oAuthenticator';
+import { W3oSession } from './W3oSession';
+import { W3oError } from './W3oError';
 
 const logger = new Logger('W3oSessionManager');
+interface W3oOctopusInstanceI {
+    networks: {
+        onNetworkChange$: BehaviorSubject<string | null>;
+        getNetwork(name: W3oNetworkName, parent: LoggerContext): W3oNetwork;
+    },
+    auth: {
+        createAuthenticator(name: W3oAuthSupportName, parent: LoggerContext): W3oAuthenticator;
+    }
+}
 
 interface W3oStoredSessions {
     currentSessionId: string | null;
@@ -33,11 +41,15 @@ export class W3oSessionManager implements W3oSessionInstance {
 
     public onSessionChange$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
 
-    constructor(settings: W3oGlobalSettings, parent: LoggerContext) {
-        const context = logger.method('constructor', {settings}, parent);
+    constructor(
+        private instance: W3oOctopusInstanceI,
+        settings: W3oGlobalSettings,
+        parent: LoggerContext
+    ) {
+        const context = logger.method('constructor', { settings }, parent);
         this.__multiSession = settings.multiSession;
         this.__autologin = settings.autoLogin;
-        Web3Octopus.instance.networks.onNetworkChange$.subscribe(() => {
+        this.instance.networks.onNetworkChange$.subscribe(() => {
             this.onSessionChange$.next(null);
         });
 
@@ -182,8 +194,8 @@ export class W3oSessionManager implements W3oSessionInstance {
                 const separator = W3oSession.ID_SEPARATOR;
                 for (const id of data.sessions) {
                     const [address, authName, netwokName] = id.split(separator);
-                    const network = Web3Octopus.instance.networks.getNetwork(netwokName, context);
-                    const authenticator = Web3Octopus.instance.auth.createAuthenticator(authName, context);
+                    const network = this.instance.networks.getNetwork(netwokName, context);
+                    const authenticator = this.instance.auth.createAuthenticator(authName, context);
                     this.createSession(address, authenticator, network, context);
                 }
                 if (this.__autologin && data.currentSessionId) {

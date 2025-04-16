@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, combineLatest } from 'rxjs';
 import { SessionService } from '@app/services/session-kit.service';
 import { TokenListService } from '@app/services/token-list.service';
-import { Token, Balance } from 'src/types';
+import { Token, Balance } from '@app/types';
 
 @Injectable({
     providedIn: 'root'

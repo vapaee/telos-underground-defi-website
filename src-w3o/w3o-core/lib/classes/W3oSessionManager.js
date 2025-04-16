@@ -3,11 +3,14 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.W3oSessionManager = void 0;
 const rxjs_1 = require("rxjs");
-const _1 = require(".");
-const logger = new _1.Logger('W3oSessionManager');
+const Logger_1 = require("./Logger");
+const W3oSession_1 = require("./W3oSession");
+const W3oError_1 = require("./W3oError");
+const logger = new Logger_1.Logger('W3oSessionManager');
 const STORAGE_KEY = 'w3o-sessions';
 class W3oSessionManager {
-    constructor(settings, parent) {
+    constructor(instance, settings, parent) {
+        this.instance = instance;
         this.__initialized = false;
         this.__sessions = {};
         this.__autologin = false;
@@ -15,7 +18,7 @@ class W3oSessionManager {
         const context = logger.method('constructor', { settings }, parent);
         this.__multiSession = settings.multiSession;
         this.__autologin = settings.autoLogin;
-        _1.Web3Octopus.instance.networks.onNetworkChange$.subscribe(() => {
+        this.instance.networks.onNetworkChange$.subscribe(() => {
             this.onSessionChange$.next(null);
         });
         this.onSessionChange$.subscribe(() => {
@@ -31,7 +34,7 @@ class W3oSessionManager {
     get current() {
         const id = this.currentSessionId;
         if (!id) {
-            throw new _1.W3oError(_1.W3oError.SESSION_NOT_FOUND, { id });
+            throw new W3oError_1.W3oError(W3oError_1.W3oError.SESSION_NOT_FOUND, { id });
         }
         return this.__sessions[id];
     }
@@ -47,7 +50,7 @@ class W3oSessionManager {
     init(parent) {
         const context = logger.method('init', undefined, parent);
         if (this.__initialized) {
-            throw new _1.W3oError(_1.W3oError.ALREADY_INITIALIZED, { name: 'W3oSessionManager', message: 'Session manager already initialized' });
+            throw new W3oError_1.W3oError(W3oError_1.W3oError.ALREADY_INITIALIZED, { name: 'W3oSessionManager', message: 'Session manager already initialized' });
         }
         this.__initialized = true;
         this.loadSessions(context);
@@ -55,10 +58,10 @@ class W3oSessionManager {
     // Método para crear una sesión
     createSession(address, authenticator, network, parent) {
         const context = logger.method('createSession', { address, authenticator, network }, parent);
-        const session = new _1.W3oSession(address, authenticator, network, context);
+        const session = new W3oSession_1.W3oSession(address, authenticator, network, context);
         // verificamos que la sessión no exista y la agregamos
         if (this.__sessions[session.id]) {
-            throw new _1.W3oError(_1.W3oError.SESSION_ALREADY_EXISTS, { id: session.id });
+            throw new W3oError_1.W3oError(W3oError_1.W3oError.SESSION_ALREADY_EXISTS, { id: session.id });
         }
         this.__sessions[session.id] = session;
         authenticator.setSessionId(session.id, context);
@@ -70,7 +73,7 @@ class W3oSessionManager {
         const session = this.createSession(address, authenticator, network, context);
         // verificamos que la sessión no exista
         if (this.__sessions[session.id]) {
-            throw new _1.W3oError(_1.W3oError.SESSION_ALREADY_EXISTS, { id: session.id, message: 'use setCurrentSession(id) instead' });
+            throw new W3oError_1.W3oError(W3oError_1.W3oError.SESSION_ALREADY_EXISTS, { id: session.id, message: 'use setCurrentSession(id) instead' });
         }
         this.setCurrentSession(session.id, parent);
         return session;
@@ -80,7 +83,7 @@ class W3oSessionManager {
         logger.method('getSession', { id }, parent);
         const session = this.__sessions[id];
         if (!session) {
-            throw new _1.W3oError(_1.W3oError.SESSION_NOT_FOUND, { id });
+            throw new W3oError_1.W3oError(W3oError_1.W3oError.SESSION_NOT_FOUND, { id });
         }
         return session;
     }
@@ -93,7 +96,7 @@ class W3oSessionManager {
     deleteSession(id, parent) {
         logger.method('deleteSession', { id }, parent);
         if (!this.__sessions[id]) {
-            throw new _1.W3oError(_1.W3oError.SESSION_NOT_FOUND, { id });
+            throw new W3oError_1.W3oError(W3oError_1.W3oError.SESSION_NOT_FOUND, { id });
         }
         delete this.__sessions[id];
         this.onSessionChange$.next(null);
@@ -102,7 +105,7 @@ class W3oSessionManager {
     setCurrentSession(id, parent) {
         logger.method('setCurrentSession', { id }, parent);
         if (!this.__sessions[id]) {
-            throw new _1.W3oError(_1.W3oError.SESSION_NOT_FOUND, { id });
+            throw new W3oError_1.W3oError(W3oError_1.W3oError.SESSION_NOT_FOUND, { id });
         }
         this.onSessionChange$.next(id);
     }
@@ -125,24 +128,24 @@ class W3oSessionManager {
         const context = logger.method('loadSessions', undefined, parent);
         // primero verificamos que no haya sesiones abiertas
         if (this.list.length > 0) {
-            throw new _1.W3oError(_1.W3oError.SESSION_ALREADY_EXISTS, { id: this.currentSessionId, message: 'close all sessions before loading' });
+            throw new W3oError_1.W3oError(W3oError_1.W3oError.SESSION_ALREADY_EXISTS, { id: this.currentSessionId, message: 'close all sessions before loading' });
         }
         try {
             const stored = localStorage.getItem(STORAGE_KEY);
             if (stored) {
                 context.log('sessions found in local storage');
                 const data = JSON.parse(stored);
-                const separator = _1.W3oSession.ID_SEPARATOR;
+                const separator = W3oSession_1.W3oSession.ID_SEPARATOR;
                 for (const id of data.sessions) {
                     const [address, authName, netwokName] = id.split(separator);
-                    const network = _1.Web3Octopus.instance.networks.getNetwork(netwokName, context);
-                    const authenticator = _1.Web3Octopus.instance.auth.createAuthenticator(authName, context);
+                    const network = this.instance.networks.getNetwork(netwokName, context);
+                    const authenticator = this.instance.auth.createAuthenticator(authName, context);
                     this.createSession(address, authenticator, network, context);
                 }
                 if (this.__autologin && data.currentSessionId) {
                     const session = this.__sessions[data.currentSessionId];
                     if (!session) {
-                        throw new _1.W3oError(_1.W3oError.SESSION_NOT_FOUND, {
+                        throw new W3oError_1.W3oError(W3oError_1.W3oError.SESSION_NOT_FOUND, {
                             id: data.currentSessionId,
                             message: 'could not perform autologin'
                         });
@@ -157,7 +160,7 @@ class W3oSessionManager {
             }
         }
         catch (e) {
-            throw new _1.W3oError(_1.W3oError.SESSION_LOAD_ERROR, { message: e.message });
+            throw new W3oError_1.W3oError(W3oError_1.W3oError.SESSION_LOAD_ERROR, { message: e.message });
         }
     }
     // Método para tomar una instantánea del estado del manejador de sesiones

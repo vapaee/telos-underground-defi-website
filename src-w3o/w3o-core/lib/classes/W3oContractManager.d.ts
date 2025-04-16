@@ -1,6 +1,8 @@
 import { Observable } from 'rxjs';
-import { LoggerContext, W3oContract, W3oNetwork } from '.';
 import { W3oAddress } from '../types';
+import { LoggerContext } from './Logger';
+import { W3oContract } from './W3oContract';
+import { W3oNetwork } from './W3oNetwork';
 export declare abstract class W3oContractManager {
     readonly network: W3oNetwork;
     private __contracts;

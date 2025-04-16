@@ -3,7 +3,7 @@ import { BehaviorSubject, map, Observable } from 'rxjs';
 import { SessionService } from '@app/services/session-kit.service';
 import { TokenBalanceService } from '@app/services/token-balance.service';
 import { TokenListService } from './token-list.service';
-import { Token, TransferStatus, TransferSummary } from 'src/types';
+import { Token, TransferStatus, TransferSummary } from '@app/types';
 
 @Injectable({
     providedIn: 'root'

@@ -8,7 +8,7 @@ import { LoginComponent } from '../login/login.component';
 import { Subject, takeUntil } from 'rxjs';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { LucideAngularModule, Menu, ScanQrCode, Sun, Moon, Globe} from 'lucide-angular'
-import { BREAKPOINT } from 'src/types';
+import { BREAKPOINT } from '@app/types';
 import { SideContainerService } from '@app/components/base-components/side-container/side-container.service';
 import { DropDownComponent } from '../base-components/drop-down/drop-down.component';
 import { TranslateService } from '@ngx-translate/core';

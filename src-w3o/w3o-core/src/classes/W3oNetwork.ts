@@ -1,16 +1,14 @@
 import { Observable } from 'rxjs';
-import {
-    Logger,
-    LoggerContext,
-    W3oContractManager,
-    W3oModule,
-    W3oToken,
-} from '.';
 
 import {
     W3oNetworkSettings,
     W3oNetworkType,
 } from '../types';
+
+import { Logger, LoggerContext } from './Logger';
+import { W3oModule } from './W3oModule';
+import { W3oContractManager } from './W3oContractManager';
+import { W3oToken } from './W3oToken';
 
 const logger = new Logger('W3oNetwork');
 
@@ -23,7 +21,7 @@ export abstract class W3oNetwork extends W3oModule {
         parent: LoggerContext
     ) {
         const context = logger.method('constructor', {settings}, parent);
-        super();
+        super(context);
         this.__contractCtrl = this.createContractManager(this, context);
     }
 
@@ -65,6 +63,4 @@ export abstract class W3oNetwork extends W3oModule {
     // Método abstracto para actualizar el estado de la red
     abstract updateState(): Observable<void>;
 
-    // Método abstracto para tomar una instantánea del estado de la red
-    abstract snapshot(): any;
 }

@@ -1,6 +1,7 @@
 import { BehaviorSubject } from 'rxjs';
-import { LoggerContext, W3oNetwork } from '.';
 import { W3oGlobalSettings, W3oNetworkInstance, W3oNetworkName } from '../types';
+import { LoggerContext } from './Logger';
+import { W3oNetwork } from './W3oNetwork';
 export declare class W3oNetworkManager implements W3oNetworkInstance {
     private __initialized;
     private __networks;

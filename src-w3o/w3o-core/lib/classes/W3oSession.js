@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.W3oSession = void 0;
-const _1 = require(".");
-const logger = new _1.Logger('W3oSession');
+const Logger_1 = require("./Logger");
+const logger = new Logger_1.Logger('W3oSession');
 // Representa una sesión, incluyendo métodos para obtener la cuenta y la red asociadas, almacenar y recuperar datos, y obtener un snapshot del estado interno
 class W3oSession {
     constructor(address, authenticator, network, parent) {

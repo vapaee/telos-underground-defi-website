@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject } from 'rxjs';
-import { Token } from 'src/types';
+import { Token } from '@app/types';
 
 @Injectable({
     providedIn: 'root'

@@ -1,20 +1,17 @@
 
 import { Observable } from 'rxjs';
 import {
-    Logger,
-    LoggerContext,
-    W3oAccount,
-    W3oAuthenticator,
-    W3oModule,
-    W3oTransactionResponse,
-} from '.';
-import {
     W3oAddress,
     W3oAuthSupportName,
     W3oNetworkName,
     W3oNetworkType,
     W3oTransaction
 } from '../types';
+import { Logger, LoggerContext } from './Logger';
+import { W3oModule } from './W3oModule';
+import { W3oAuthenticator } from './W3oAuthenticator';
+import { W3oTransactionResponse } from './W3oTransactionResponse';
+import { W3oAccount } from './W3oAccount';
 
 const logger = new Logger('W3oAuthSupport');
 
@@ -23,14 +20,16 @@ export abstract class W3oAuthSupport extends W3oModule {
     constructor(
         public readonly name: W3oAuthSupportName,
         public readonly type: W3oNetworkType,
+        parent: LoggerContext,
     ) {
-        super();
+        const context = logger.method('constructor', { name, type }, parent);
+        super(context);
     }
 
     // Método para crear un autenticador
     createAuthenticator(parent: LoggerContext): W3oAuthenticator {
-        logger.method('createAuthenticator', undefined, parent);
-        return new W3oAuthenticator(this);
+        const context = logger.method('createAuthenticator', undefined, parent);
+        return new W3oAuthenticator(this, context);
     }
 
     // Método abstracto para verificar si el autenticador es de solo lectura
@@ -47,8 +46,5 @@ export abstract class W3oAuthSupport extends W3oModule {
     
     // Método abstracto para cerrar sesión
     abstract logout(parent: LoggerContext): void;
-
-    // Método abstracto para tomar una instantánea del estado del autenticador
-    abstract snapshot(): any;
     
 }

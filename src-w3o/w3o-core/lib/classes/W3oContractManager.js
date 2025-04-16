@@ -4,8 +4,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.W3oContractManager = void 0;
 const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
-const _1 = require(".");
-const logger = new _1.Logger('W3oContractManager');
+const Logger_1 = require("./Logger");
+const logger = new Logger_1.Logger('W3oContractManager');
 // Represents a contract manager, including methods to add, get, and list contracts
 class W3oContractManager {
     constructor(network, parent) {

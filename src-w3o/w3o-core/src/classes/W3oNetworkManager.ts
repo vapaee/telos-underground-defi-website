@@ -1,17 +1,15 @@
 // w3o-core\src\classes\W3oNetworkManager.ts
 import { BehaviorSubject } from 'rxjs';
-import {
-    Logger,
-    LoggerContext,
-    W3oError,
-    W3oNetwork,
-} from '.';
 
 import {
     W3oGlobalSettings,
     W3oNetworkInstance,
     W3oNetworkName,
 } from '../types';
+
+import { Logger, LoggerContext } from './Logger';
+import { W3oNetwork } from './W3oNetwork';
+import { W3oError } from './W3oError';
 
 const logger = new Logger('W3oNetworkManager');
 
@@ -52,7 +50,7 @@ export class W3oNetworkManager implements W3oNetworkInstance {
             throw new W3oError(W3oError.ALREADY_INITIALIZED, { name: 'W3oNetworkManager', message: 'Network manager already initialized' });
         }
         this.__initialized = true;
-        context.log('Not implemented yet');
+        context.log('W3onetworkManager.init() Not implemented yet');
     }
 
     // Método para registrar una red

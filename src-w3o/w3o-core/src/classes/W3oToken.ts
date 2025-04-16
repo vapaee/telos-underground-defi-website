@@ -1,7 +1,4 @@
-import {
-    W3oContract,
-} from '.';
-
+import { W3oContract } from "./W3oContract";
 
 // Representa un token, incluyendo métodos para obtener información del token y su contrato asociado
 export abstract class W3oToken {

@@ -3,11 +3,11 @@ import { CommonModule } from '@angular/common';
 import { TokenBalanceService } from '@app/services/token-balance.service';
 import { SessionService } from '@app/services/session-kit.service';
 import { Subject, Subscription, takeUntil } from 'rxjs';
-import { Balance } from 'src/types';
+import { Balance } from '@app/types';
 import { ExpandableComponent } from '@app/components/base-components/expandable/expandable.component';
 import { ExpandableGroupComponent } from '@app/components/base-components/expandable/expandable-group.component';
 import { TokenTransferFormComponent } from '@app/components/token-transfer-form/token-transfer-form.component';
-import { BREAKPOINT } from 'src/types';
+import { BREAKPOINT } from '@app/types';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { SharedModule } from '@app/shared/shared.module';
 

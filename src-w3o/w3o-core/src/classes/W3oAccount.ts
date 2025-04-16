@@ -1,6 +1,4 @@
-import {
-    W3oAuthenticator,
-} from '.';
+import { W3oAuthenticator } from './W3oAuthenticator';
 
 
 // Representa una cuenta de usuario, incluyendo datos mínimos y una referencia a su autenticador

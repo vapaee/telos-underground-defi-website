@@ -1,17 +1,24 @@
 import {
     BehaviorSubject
 } from 'rxjs';
+import { Logger, LoggerContext } from './Logger';
 
+const logger = new Logger('W3oModule');
 
 // Clase abstracta que representa un módulo (authenticador, network o servicio), su ID ()
 export abstract class W3oModule {
     initialized$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
 
-    constructor() {}
+    constructor(
+        parent: LoggerContext,
+    ) {
+        logger.method('constructor', { w3oId: this.w3oId }, parent);
+    }
 
     // Método abstracto que deberá ser implementado por los móidulos que lo necesiten
     // esta función será llamada cuando todos los módulos requeridos estén inicializados
-    init(): void {
+    init(parent: LoggerContext): void {
+        logger.method('init', { w3oId: this.w3oId }, parent);
         this.initialized$.next(true);
     }
 
@@ -29,6 +36,13 @@ export abstract class W3oModule {
         return this.w3oName + '@' + this.w3oVersion;
     }
 
-    // Método abstracto para tomar una instantánea del estado del módulo
-    abstract snapshot(): any;
+    // Method to take a snapshot of the module identifier
+    snapshot() {
+        return {
+            w3oId: this.w3oId,
+            w3oName: this.w3oName,
+            w3oVersion: this.w3oVersion,
+            w3oRequire: this.w3oRequire,
+        };
+    }
 }

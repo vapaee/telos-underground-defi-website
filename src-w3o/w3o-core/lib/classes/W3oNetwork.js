@@ -1,13 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.W3oNetwork = void 0;
-const _1 = require(".");
-const logger = new _1.Logger('W3oNetwork');
+const Logger_1 = require("./Logger");
+const W3oModule_1 = require("./W3oModule");
+const logger = new Logger_1.Logger('W3oNetwork');
 // Clase abstracta que representa una red específica, incluyendo métodos para obtener información sobre la red y sus contratos
-class W3oNetwork extends _1.W3oModule {
+class W3oNetwork extends W3oModule_1.W3oModule {
     constructor(settings, parent) {
         const context = logger.method('constructor', { settings }, parent);
-        super();
+        super(context);
         this.settings = settings;
         this.__contractCtrl = this.createContractManager(this, context);
     }

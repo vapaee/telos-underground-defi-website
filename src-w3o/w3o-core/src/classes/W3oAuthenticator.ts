@@ -23,9 +23,10 @@ export class W3oAuthenticator {
     private __sessionId: string = '';
     
     constructor(
-        public readonly support: W3oAuthSupport
+        public readonly support: W3oAuthSupport,
+        parent: LoggerContext,
     ) {
-        
+        logger.method('constructor', {support}, parent);
     }
 
     // Getter to obtain the user's account (throws an exception if not authenticated)
