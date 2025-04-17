@@ -2,6 +2,7 @@ import {
     BehaviorSubject
 } from 'rxjs';
 import { Logger, LoggerContext } from './Logger';
+import { W3oInstance } from '../types';
 
 const logger = new Logger('W3oModule');
 
@@ -9,16 +10,44 @@ const logger = new Logger('W3oModule');
 export abstract class W3oModule {
     initialized$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
 
+    static modules: {[w3oId: string]: W3oModule} = {};
+    static registerModule(module: W3oModule, parent: LoggerContext): void {
+        logger.method('registerModule', { module }, parent);
+        if (W3oModule.modules[module.w3oId]) {
+            throw new Error(`Module ${module.w3oId} already registered`);
+        }
+        W3oModule.modules[module.w3oId] = module;
+    }
+    static getModule(w3oId: string, parent: LoggerContext): W3oModule | undefined {
+        logger.method('getModule', { w3oId }, parent);
+        return W3oModule.modules[w3oId];
+    }
+    static getModules(parent: LoggerContext): W3oModule[] {
+        logger.method('getModules', {}, parent);
+        return Object.values(W3oModule.modules);
+    }
+
     constructor(
         parent: LoggerContext,
     ) {
-        logger.method('constructor', { w3oId: this.w3oId }, parent);
+        const context = logger.method('constructor', parent);
+        // Register the module in the static modules list
+        const [name, version] = this.w3oId.split('@');
+        if (!!name && !!version) {
+            W3oModule.registerModule(this, context);
+        } else {
+            setTimeout(() => {
+                if (!W3oModule.modules[this.w3oId]) {
+                    context.error('Module not registered. Try to register yourself after W3oModule constructor', { w3oId: this.w3oId });
+                }
+            }, 0);
+        }
     }
 
     // Método abstracto que deberá ser implementado por los móidulos que lo necesiten
     // esta función será llamada cuando todos los módulos requeridos estén inicializados
-    init(parent: LoggerContext): void {
-        logger.method('init', { w3oId: this.w3oId }, parent);
+    init(octopus: W3oInstance, parent: LoggerContext): void {
+        logger.method('init', { w3oId: this.w3oId, octopus }, parent);
         this.initialized$.next(true);
     }
 
@@ -32,7 +61,7 @@ export abstract class W3oModule {
     abstract get w3oRequire(): string[];
 
     // Devuelve el ID del módulo
-    get w3oId(): string {
+    public get w3oId(): string {
         return this.w3oName + '@' + this.w3oVersion;
     }
 

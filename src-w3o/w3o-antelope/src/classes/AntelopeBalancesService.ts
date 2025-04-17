@@ -1,38 +1,38 @@
 import {
     Logger,
     LoggerContext,
-    W3oIServices,
+    W3oInstance,
     W3oService,
-    Web3Octopus,
 } from "@vapaee/w3o-core";
 
 const logger = new Logger('AntelopeBalancesService');
-export class AntelopeBalancesService<T extends W3oIServices> extends W3oService {
+export class AntelopeBalancesService extends W3oService {
     constructor(
-        public path: string,
-        octopus: Web3Octopus<T>,
-        parent?: LoggerContext
+        path: string,
+        parent: LoggerContext
     ) {
-        const context = logger.method('constructor', {path, octopus}, parent);
+        const context = logger.method('constructor', {path}, parent);
         super(path, context);
     }
 
     // Module id ------
     override get w3oVersion(): string {
-        return '0.0.1';
+        return '0.1.0';
     }
     override get w3oName(): string {
         return 'antelope.service.balances';
     }
     override get w3oRequire(): string[] {
-        return [];
+        return [
+            'antelope.service.tokens@0.1.0'
+        ];
     }
 
     // Module init ------
-    override init(parent: LoggerContext): void {
-        const context = logger.method('init', undefined, parent);
-        context.info('AntelopeBalancesService custom initialization here');
-        super.init(context);
+    override init(octopus: W3oInstance, parent: LoggerContext): void {
+        const context = logger.method('init', { octopus }, parent);
+        context.info('AntelopeBalancesService OK!', super.w3oId);
+        super.init(octopus, context);
     }
 
     // Module methods ------
@@ -40,6 +40,6 @@ export class AntelopeBalancesService<T extends W3oIServices> extends W3oService 
         return {
             ... super.snapshot(),
             _class: 'AntelopeBalancesService',
-        };        
+        };
     }
 }

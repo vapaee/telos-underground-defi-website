@@ -4,9 +4,8 @@ import { BehaviorSubject } from 'rxjs';
 
 import {
     W3oAddress,
-    W3oAuthSupportName,
     W3oGlobalSettings,
-    W3oNetworkName,
+    W3oInstance,
     W3oSessionInstance
 } from '../types';
 import { Logger, LoggerContext } from './Logger';
@@ -16,15 +15,6 @@ import { W3oSession } from './W3oSession';
 import { W3oError } from './W3oError';
 
 const logger = new Logger('W3oSessionManager');
-interface W3oOctopusInstanceI {
-    networks: {
-        onNetworkChange$: BehaviorSubject<string | null>;
-        getNetwork(name: W3oNetworkName, parent: LoggerContext): W3oNetwork;
-    },
-    auth: {
-        createAuthenticator(name: W3oAuthSupportName, parent: LoggerContext): W3oAuthenticator;
-    }
-}
 
 interface W3oStoredSessions {
     currentSessionId: string | null;
@@ -39,21 +29,18 @@ export class W3oSessionManager implements W3oSessionInstance {
     private __multiSession: boolean;
     private __autologin = false;
 
-    public onSessionChange$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
+    private octopus!: W3oInstance;
+    public onCurrentSessionChange$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
 
     constructor(
-        private instance: W3oOctopusInstanceI,
         settings: W3oGlobalSettings,
         parent: LoggerContext
     ) {
         const context = logger.method('constructor', { settings }, parent);
         this.__multiSession = settings.multiSession;
         this.__autologin = settings.autoLogin;
-        this.instance.networks.onNetworkChange$.subscribe(() => {
-            this.onSessionChange$.next(null);
-        });
 
-        this.onSessionChange$.subscribe(() => {
+        this.onCurrentSessionChange$.subscribe(() => {
             context.log('session change detected');
             this.saveSessions(context);
         });
@@ -61,7 +48,7 @@ export class W3oSessionManager implements W3oSessionInstance {
 
     // Getter para obtener el ID de la sesión actual
     get currentSessionId(): string | null {
-        return this.onSessionChange$.value;
+        return this.onCurrentSessionChange$.value;
     }
 
     // Getter para obtener la sesión actual
@@ -70,33 +57,41 @@ export class W3oSessionManager implements W3oSessionInstance {
         if (!id) {
             throw new W3oError(W3oError.SESSION_NOT_FOUND, { id })
         }
-        return this.__sessions[id];        
+        return this.__sessions[id];
     }
 
     // Getter para obtener la lista de sesiones
     get list(): W3oSession[] {
         return Object.values(this.__sessions);
     }
-    
+
     // Getter para obtener si se permite multi-sesión
     get isMultiSession(): boolean {
         return this.__multiSession;
     }
 
     // Método para inicializar el manejador de sesiones
-    init(parent: LoggerContext) {
-        const context = logger.method('init', undefined, parent);
+    init(
+        octopus: W3oInstance,
+        parent: LoggerContext,
+    ): void {
+        const context = logger.method('init', { octopus }, parent);
         if (this.__initialized) {
             throw new W3oError(W3oError.ALREADY_INITIALIZED, { name: 'W3oSessionManager', message: 'Session manager already initialized' });
         }
+        this.octopus = octopus;
+        octopus.networks.onNetworkChange$.subscribe(() => {
+            context.debug('network change detected -> change session to null');
+            this.onCurrentSessionChange$.next(null);
+        });
         this.__initialized = true;
         this.loadSessions(context);
     }
 
     // Método para crear una sesión
     createSession(
-        address: W3oAddress, 
-        authenticator: W3oAuthenticator, 
+        address: W3oAddress,
+        authenticator: W3oAuthenticator,
         network: W3oNetwork,
         parent: LoggerContext
     ): W3oSession {
@@ -113,8 +108,8 @@ export class W3oSessionManager implements W3oSessionInstance {
 
     // Método para crear una sesión y setearla como la sesión actual
     createCurrentSession(
-        address: W3oAddress, 
-        authenticator: W3oAuthenticator, 
+        address: W3oAddress,
+        authenticator: W3oAuthenticator,
         network: W3oNetwork,
         parent: LoggerContext
     ): W3oSession {
@@ -151,7 +146,7 @@ export class W3oSessionManager implements W3oSessionInstance {
             throw new W3oError(W3oError.SESSION_NOT_FOUND, { id })
         }
         delete this.__sessions[id];
-        this.onSessionChange$.next(null);
+        this.onCurrentSessionChange$.next(null);
     }
 
     // Método para establecer la sesión actual
@@ -160,7 +155,7 @@ export class W3oSessionManager implements W3oSessionInstance {
         if (!this.__sessions[id]) {
             throw new W3oError(W3oError.SESSION_NOT_FOUND, { id })
         }
-        this.onSessionChange$.next(id);
+        this.onCurrentSessionChange$.next(id);
     }
 
     // Método para obtener la sesión actual
@@ -194,8 +189,8 @@ export class W3oSessionManager implements W3oSessionInstance {
                 const separator = W3oSession.ID_SEPARATOR;
                 for (const id of data.sessions) {
                     const [address, authName, netwokName] = id.split(separator);
-                    const network = this.instance.networks.getNetwork(netwokName, context);
-                    const authenticator = this.instance.auth.createAuthenticator(authName, context);
+                    const network = this.octopus.networks.getNetwork(netwokName, context);
+                    const authenticator = this.octopus.auth.createAuthenticator(authName, context);
                     this.createSession(address, authenticator, network, context);
                 }
                 if (this.__autologin && data.currentSessionId) {

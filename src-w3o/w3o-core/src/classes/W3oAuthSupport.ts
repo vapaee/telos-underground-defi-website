@@ -5,6 +5,7 @@ import {
     W3oAuthSupportName,
     W3oNetworkName,
     W3oNetworkType,
+    W3oInstance,
     W3oTransaction
 } from '../types';
 import { Logger, LoggerContext } from './Logger';
@@ -34,17 +35,17 @@ export abstract class W3oAuthSupport extends W3oModule {
 
     // Método abstracto para verificar si el autenticador es de solo lectura
     abstract isReadOnly(): boolean;
-    
+
     // Método abstracto para firmar una transacción
     abstract signTransaction(trx: W3oTransaction, parent: LoggerContext): Observable<W3oTransactionResponse>;
-    
+
     // Método abstracto para iniciar sesión en una red específica
     abstract login(network: W3oNetworkName, parent: LoggerContext): Observable<W3oAccount>;
-    
+
     // Método abstracto para iniciar sesión automáticamente en una red específica
     abstract autoLogin(network: W3oNetworkName, address: W3oAddress, parent: LoggerContext): Observable<W3oAccount>;
-    
+
     // Método abstracto para cerrar sesión
     abstract logout(parent: LoggerContext): void;
-    
+
 }

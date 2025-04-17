@@ -2,26 +2,27 @@
 
 import { Observable } from 'rxjs';
 import {
-    Logger,
-    LoggerContext,
-    W3oAccount,
-    W3oError,
-    W3oTransactionResponse,
-    Web3Octopus,
-} from '.';
-import {
     W3oAddress,
     W3oNetworkName,
+    W3oInstance,
     W3oTransaction
 } from '../types';
+
+import { Logger, LoggerContext } from './Logger';
+import { W3oAccount } from './W3oAccount';
 import { W3oAuthSupport } from './W3oAuthSupport';
+import { W3oError } from './W3oError';
+import { W3oTransactionResponse } from './W3oTransactionResponse';
 
 const logger = new Logger('W3oAuthenticator');
+
 
 export class W3oAuthenticator {
     private __account: W3oAccount | null = null;
     private __sessionId: string = '';
-    
+
+    octopus!: W3oInstance;
+
     constructor(
         public readonly support: W3oAuthSupport,
         parent: LoggerContext,
@@ -102,7 +103,7 @@ export class W3oAuthenticator {
     // Method to log in to a specific network
     login(network: W3oNetworkName, parent: LoggerContext): Observable<W3oAccount> {
         const context = logger.method('login', {network}, parent);
-        return new Observable<W3oAccount>(subscriber => { 
+        return new Observable<W3oAccount>(subscriber => {
             try {
                 const accountObservable = this.support.login(network, context);
                 accountObservable.subscribe({
@@ -147,7 +148,7 @@ export class W3oAuthenticator {
         try {
             this.support.logout(context);
             this.__account = null;
-            Web3Octopus.instance.sessions.deleteSession(this.sessionId, context);
+            this.octopus.sessions.deleteSession(this.sessionId, context);
             this.__sessionId = '';
         } catch (error) {
             context.error((error as Error).message);

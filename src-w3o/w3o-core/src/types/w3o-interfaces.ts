@@ -2,10 +2,12 @@ import { BehaviorSubject } from "rxjs";
 import {
     LoggerContext,
     W3oAuthenticator,
+    W3oAuthSupport,
+    W3oModule,
     W3oNetwork,
     W3oSession
 } from "../classes";
-import { W3oAuthSupport } from "../classes/W3oAuthSupport";
+
 
 import {
     W3oAddress,
@@ -38,7 +40,7 @@ export interface W3oNetworkSettings {
     links: W3oNetworkLinks;
 }
 
-// 
+//
 export interface W3oGlobalSettings {
     // if multiSession is false, W3oSessionManager we maintain always one open session and logout the user if the network changes
     // if multiSession is true, W3oSessionManager will maintain multiple open sessions
@@ -87,5 +89,5 @@ export interface W3oAuthInstance {
 }
 
 export interface W3oModuleInstance {
-
+    // registerModule(module: W3oModule, parent: LoggerContext): void
 }

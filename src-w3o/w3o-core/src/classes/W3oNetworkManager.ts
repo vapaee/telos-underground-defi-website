@@ -5,6 +5,7 @@ import {
     W3oGlobalSettings,
     W3oNetworkInstance,
     W3oNetworkName,
+    W3oInstance,
 } from '../types';
 
 import { Logger, LoggerContext } from './Logger';
@@ -20,8 +21,13 @@ export class W3oNetworkManager implements W3oNetworkInstance {
 
     public onNetworkChange$: BehaviorSubject<W3oNetworkName | null> = new BehaviorSubject<string | null>(null);
 
-    constructor(settings: W3oGlobalSettings, parent: LoggerContext) {
-        logger.method('constructor', {settings}, parent);
+    octopus!: W3oInstance;
+
+    constructor(
+        settings: W3oGlobalSettings,
+        parent: LoggerContext
+    ) {
+        logger.method('constructor', {settings, octopus: this.octopus }, parent);
     }
 
     // Getter para obtener el nombre de la red actual
@@ -35,7 +41,7 @@ export class W3oNetworkManager implements W3oNetworkInstance {
         if (!name) {
             throw new W3oError(W3oError.NETWORK_NOT_FOUND, { name });
         }
-        return this.getNetwork(name, Logger.current);        
+        return this.getNetwork(name, Logger.current);
     }
 
     // Getter para obtener la lista de redes
@@ -44,18 +50,27 @@ export class W3oNetworkManager implements W3oNetworkInstance {
     }
 
     // Método para inicializar el manejador de redes
-    init(parent?: LoggerContext) {
-        const context = logger.method('init', undefined, parent);
+    init(
+        octopus: W3oInstance,
+        parent: LoggerContext
+    ): void {
+        const context = logger.method('init', { octopus }, parent);
+        this.octopus = octopus;
         if (this.__initialized) {
             throw new W3oError(W3oError.ALREADY_INITIALIZED, { name: 'W3oNetworkManager', message: 'Network manager already initialized' });
         }
+        // this.__networks.forEach(network => {
+        //     network.init(octopus, context);
+        // });
         this.__initialized = true;
-        context.log('W3onetworkManager.init() Not implemented yet');
     }
 
     // Método para registrar una red
     addNetwork(network: W3oNetwork, parent: LoggerContext): void {
         logger.method('addNetwork', { network }, parent);
+        if (this.__initialized) {
+            throw new W3oError(W3oError.ALREADY_INITIALIZED, { name: 'W3oNetworkManager', message: 'Network manager already initialized' });
+        }
         this.__networks.push(network);
     }
 
@@ -83,7 +98,7 @@ export class W3oNetworkManager implements W3oNetworkInstance {
     getCurrentNetwork(): W3oNetwork {
         return this.current;
     }
-    
+
     // Método para actualizar el estado de todas las redes
     // TODO: cambiar el tipo de retorno a Observable y hacer que los networks sean actualizados todos a las vez y no secuencialmente (remove this comment when implemented)
     async updateState(): Promise<void> {

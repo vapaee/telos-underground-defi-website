@@ -13,22 +13,24 @@ type LoggerContextParent = LoggerContext | undefined;
 export class LoggerContext {
     private static uniqueIdCounter = 0;
     private idValue: string;
-    private parentContext?: LoggerContextParent;
+    private parentContext: LoggerContextParent;
     // private methodName: string;
     private argsValue: any;
     private logsArray: LoggedLine[];
     private levelValue: number;
     private startTime: number;
-    
-    constructor(methodName: string, args: any, parent?: LoggerContextParent) {
+
+    constructor(className: string, methodName: string, args: any, parent: LoggerContextParent) {
+        const completedName = `${className}.${methodName}`;
         this.idValue = LoggerContext.generateUniqueId();
         this.parentContext = parent;
         // this.methodName = methodName;
         this.argsValue = args;
         this.logsArray = [];
-        this.levelValue = parent ? parent.level() + 1 : 0;
+        this.levelValue = parent ? parent.level() : 0;
         this.startTime = parent ? parent.startTime : Date.now();
-        this.log(`${methodName}()`, args);
+        this.log(`${completedName}()`, args);
+        this.levelValue++;
     }
 
     static generateUniqueId(): string {
@@ -76,14 +78,24 @@ export class LoggerContext {
         return t;
     }
 
+    branch(): string {
+        const father = this.parentContext ? this.parentContext.branch() : 'x';
+        return `${father}${this.idValue.substring(1)}`;
+    }
+
+    get prefix(): string {
+        // return `${this.id()} ${this.timestamp()}${this.indent}`;
+        // return `${this.timestamp()} ${this.branch()}: ${this.indent}`;
+        return `${this.timestamp()} ${this.branch()}:    `;
+    }
+
     log(...args: any[]): void {
         this.logsArray.push({
             t: this.getCurrentTime(),
             m: 'log',
             args
         });
-        const messagePrefix = `${this.id()} ${this.timestamp()}${this.indent}`;
-        console.log(messagePrefix, ...args);
+        console.log(this.prefix, ...args);
     }
 
     error(...args: any[]): void {
@@ -92,8 +104,7 @@ export class LoggerContext {
             m: 'error',
             args
         });
-        const messagePrefix = `${this.id()} ${this.timestamp()}${this.indent}`;
-        console.error(messagePrefix, ...args);
+        console.error(this.prefix, ...args);
     }
 
     info(...args: any[]): void {
@@ -102,8 +113,7 @@ export class LoggerContext {
             m: 'log',
             args
         });
-        const messagePrefix = `${this.id()} ${this.timestamp()}${this.indent}`;
-        console.info(messagePrefix, ...args);
+        console.info(this.prefix, ...args);
     }
 
     debug(...args: any[]): void {
@@ -112,8 +122,7 @@ export class LoggerContext {
             m: 'log',
             args
         });
-        const messagePrefix = `${this.id()} ${this.timestamp()}${this.indent}`;
-        console.debug(messagePrefix, ...args);
+        console.debug(this.prefix, ...args);
     }
 
     warn(...args: any[]): void {
@@ -122,22 +131,33 @@ export class LoggerContext {
             m: 'log',
             args
         });
-        const messagePrefix = `${this.id()} ${this.timestamp()}${this.indent}`;
-        console.warn(messagePrefix, ...args);
+        console.warn(this.prefix, ...args);
+    }
+    assert(condition: boolean, ...args: any[]): void {
+        this.logsArray.push({
+            t: this.getCurrentTime(),
+            m: 'log',
+            args
+        });
+        console.assert(condition, this.prefix, ...args);
     }
 }
 
 
 export class Logger {
-    private name: string;
+    private className: string;
     static current: LoggerContext;
 
-    constructor(name: string) {
-        this.name = name;
+    constructor(className: string) {
+        this.className = className;
     }
 
     method(methodName: string, args?: any, context?: LoggerContextParent): LoggerContext {
-        Logger.current = new LoggerContext(`${this.name}.${methodName}`, args, context);
+        if (args instanceof LoggerContext) {
+            context = args;
+            args = undefined;
+        }
+        Logger.current = new LoggerContext(this.className, methodName, args, context);
         return Logger.current;
     }
 }
@@ -148,7 +168,7 @@ export class Logger {
 const logger = new Logger('MyClass');
 
 class MyClass {
-    
+
     foo(n: number, parent?: LoggerContextParent) {
         const context = logger.method('foo', {n}, parent);
         context.log('log - n:', n);

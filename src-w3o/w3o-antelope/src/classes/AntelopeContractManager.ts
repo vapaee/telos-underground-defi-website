@@ -4,25 +4,24 @@ import {
     W3oAddress,
     W3oContract,
     W3oContractManager,
+    W3oInstance,
+    W3oNetwork,
     W3oNetworkSettings,
 } from "@vapaee/w3o-core";
 
 import { Observable } from "rxjs";
 import { AntelopeNetwork } from "./AntelopeNetwork";
 
-const logger = new Logger('AntelopeNetwork');
+const logger = new Logger('AntelopeContractManager');
 export class AntelopeContractManager extends W3oContractManager {
 
-    public network: AntelopeNetwork;
-    
     constructor(
         settings: W3oNetworkSettings,
-        parent?: LoggerContext
+        network: AntelopeNetwork,
+        parent: LoggerContext
     ) {
         const context = logger.method('constructor', {settings}, parent);
-        const network = new AntelopeNetwork(settings, context);
-        super(network, context);
-        this.network = network;
+        super(settings, network as W3oNetwork, context);
     }
 
     fetchContract(address: W3oAddress, parent: LoggerContext): Observable<W3oContract | null> {

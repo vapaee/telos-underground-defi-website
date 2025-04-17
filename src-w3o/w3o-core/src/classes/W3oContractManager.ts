@@ -4,7 +4,8 @@ import { Observable } from 'rxjs';
 import { from } from 'rxjs';
 import { mergeMap } from 'rxjs/operators';
 import {
-    W3oAddress
+    W3oAddress,
+    W3oNetworkSettings,
 } from '../types';
 import { Logger, LoggerContext } from './Logger';
 import { W3oContract } from './W3oContract';
@@ -18,6 +19,7 @@ export abstract class W3oContractManager {
     private __contracts: { [address: string]: W3oContract | null } = {};
 
     constructor(
+        public readonly settings: W3oNetworkSettings,
         public readonly network: W3oNetwork,
         parent: LoggerContext
     ) {

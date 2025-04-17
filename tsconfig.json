@@ -4,6 +4,10 @@
         "baseUrl": "./", // Set the base URL to the project root
         "paths": {
             "@app/*": ["./src/app/*"], // Define the alias
+            // Web4Octopus
+            "@vapaee/w3o-core": [ "./src-w3o/w3o-core/src/index.ts" ],
+            "@vapaee/w3o-antelope": [ "./src-w3o/w3o-antelope/src/index.ts" ],
+            "@vapaee/w3o-telos": [ "./src-w3o/w3o-telos/src/index.ts" ]
         },
         "outDir": "./dist/out-tsc",
         "strict": true,
