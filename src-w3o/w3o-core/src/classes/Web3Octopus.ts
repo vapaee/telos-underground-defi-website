@@ -15,12 +15,12 @@ import { W3oNetworkManager } from './W3oNetworkManager';
 import { W3oSessionManager } from './W3oSessionManager';
 import { W3oModuleManager } from './W3oModuleManager';
 import { W3oError } from './W3oError';
-import { W3oModuleInstance } from './W3oModuleInstance';
-import { W3oModule } from './W3oModule';
+import { W3oModuleConcept } from './W3oModuleConcept';
 
 const logger = new Logger('Web3Octopus');
 
 const defaultSettings: W3oGlobalSettings = {
+    appName: 'w3o-app',
     multiSession: false,
     autoLogin: true,
 };
@@ -42,6 +42,9 @@ export class Web3Octopus<Tw3o extends W3oIServices & WithSnapshot> implements W3
     private __moduleCtrl: W3oModuleManager | null = null;
     private __services: W3oService[] = [];
     private __serviceCtrl: Tw3o | null = null;
+    private __supportFor: { [type: string]: W3oNetworkSupportSettings } = {};
+
+    private __settings: W3oGlobalSettings | null = null;
 
     // static getter para obtener la instancia de Octopus casteada a la interfaz W3oInstance
     private static __instance: W3oInstance | null = null;
@@ -97,6 +100,22 @@ export class Web3Octopus<Tw3o extends W3oIServices & WithSnapshot> implements W3
         return this.__serviceCtrl;
     }
 
+    // Getter to obtain the settings
+    get settings(): W3oGlobalSettings {
+        if (!this.__settings) {
+            throw new W3oError(W3oError.SETTINGS_NOT_FOUND);
+        }
+        return this.__settings;
+    }
+
+    getSupportFor(type: string): W3oNetworkSupportSettings {
+        const context = logger.method('getSupportFor', {type});
+        if (!this.__supportFor[type]) {
+            throw new W3oError(W3oError.SUPPORT_NOT_FOUND, { type });
+        }
+        return this.__supportFor[type];
+    }
+
     // Method to add network support
     addNetworkSupport(support: W3oNetworkSupportSettings, parent?: LoggerContext): void {
         const context = logger.method('addNetworkSupport', {support}, parent);
@@ -111,25 +130,48 @@ export class Web3Octopus<Tw3o extends W3oIServices & WithSnapshot> implements W3
         ).subscribe(() => {
             console.assert(!!this.networks, context.indent + 'Network manager not created');
             console.assert(!!this.auth, context.indent + 'Auth manager not created');
+            context.log('processing support', support.type, 'with requirements', support.networks, support.auth, { support });
 
             // Add support for the network
             for (const network of support.networks) {
                 this.networks.addNetwork(network, context);
-                // Register generic support module
-                // const supportModule = new W3oModuleInstance(
-                //     {
-                //         v:'1.0.0',
-                //         n: `${support.type}.${network.name}`,
-                //         r: [] as string[],
-                //     },
-                //     context
-                // );
-                // W3oModule.registerModule(supportModule, context);
             }
 
             // Add support for authentication for this type of network
             for (const auth of support.auth) {
                 this.auth.addAuthSupport(auth, context);
+            }
+
+            if (support.networks.length > 0) {
+                // Register network support module
+                new W3oModuleConcept(
+                    { v:'1.0.0', n: `${support.type}.network.support`, r: [] as string[] },
+                    { support },
+                    context
+                );
+            }
+
+            if (support.auth.length > 0) {
+                // Register auth support module
+                new W3oModuleConcept(
+                    { v:'1.0.0', n: `${support.type}.auth.support`, r: [`${support.type}.network.support`] as string[] },
+                    { auth: support.auth },
+                    context
+                );
+            }
+            // Register generic support module
+            new W3oModuleConcept(
+                { v:'1.0.0', n: `${support.type}.global.support`, r: [
+                    `${support.type}.network.support`,
+                    `${support.type}.auth.support`,
+                ] as string[] },
+                { support },
+                context
+            );
+
+            // If there's no current network yet, set the first network as the current one
+            if (!this.networks.currentNetworkName) {
+                this.networks.setCurrentNetwork(support.networks[0].name, context);
             }
 
             sub.unsubscribe(); // Unsubscribe after adding support
@@ -142,13 +184,14 @@ export class Web3Octopus<Tw3o extends W3oIServices & WithSnapshot> implements W3
             throw new W3oError(W3oError.ALREADY_INITIALIZED, { name: 'Web3Octopus', message: 'Web3Octopus can only be initialized once' });
         }
         const octopus = this;
+        this.__settings = settings;
         this.__initialized = true;
         this.__networkCtrl = new W3oNetworkManager(settings, context);
         this.__sessionCtrl = new W3oSessionManager(settings, context);
         this.__authCtrl = new W3oAuthManager(settings, context);
         this.__moduleCtrl = new W3oModuleManager(settings, context);
         this.__serviceCtrl = this.createServiceCustomInstance(context);
-        console.log(`✅ Web3Octopus managers ready!!`);
+        context.log(`✅ Web3Octopus managers ready!!`);
         this.onManagersReady$.next(true);
 
         // Initialize the managers
@@ -157,28 +200,8 @@ export class Web3Octopus<Tw3o extends W3oIServices & WithSnapshot> implements W3
         this.sessions.init(octopus, context);
         this.networks.init(octopus, context);
         // imprimir un ícono de un check verde seguido del texto: "Web3Octopus initialized"
-        console.log(`✅ Web3Octopus initialized successfully!!`);
+        context.log(`✅ Web3Octopus initialized successfully!!`);
         this.onInitialized$.next(this.__initialized);
-    }
-
-    // Method to register services
-    registerServices(services: W3oService[], parent?: LoggerContext): void {
-        const context = logger.method('registerServices', {services}, parent);
-        this.__services.push(...services);
-
-        // at this point network and auth managers are not created yet
-        // so we need to subscribe to the onManagersReady$ observable to register the services
-        // const sub = this.onManagersReady$.pipe(
-        //     filter((initialized) => initialized), // only proceed when initialized
-        // ).subscribe(() => {
-        //     console.assert(!!this.modules, context.indent + 'Module manager not created');
-        //     for (const service of services) {
-        //         context.log('registering service', service.path);
-        //         // Register the service in the module manager
-        //         // this.modules.registerModule(service, context);
-        //     }
-        //     sub.unsubscribe(); // Unsubscribe after adding support
-        // });
     }
 
     // Method to create services
@@ -226,6 +249,12 @@ export class Web3Octopus<Tw3o extends W3oIServices & WithSnapshot> implements W3
 
         context.log('services created successfully', {services: servicesObject});
         return servicesObject as Tw3o;
+    }
+
+    // Method to register services
+    registerServices(services: W3oService[], parent?: LoggerContext): void {
+        const context = logger.method('registerServices', {services}, parent);
+        this.__services.push(...services);
     }
 
     // Method to take a snapshot of the framework state

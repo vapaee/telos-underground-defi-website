@@ -1,4 +1,4 @@
-// local-storage.service.ts
+// src/app/services/local-storage.service.ts
 import { Injectable, inject } from '@angular/core';
 import { UserState } from '@app/store/user/user.reducer';
 import { Store } from '@ngrx/store';

@@ -41,7 +41,7 @@ export class W3oModuleManager implements W3oModuleInstance {
             context.debug('processing module', module.w3oId, 'with requirements', module.w3oRequire, { module });
 
             if (module.w3oRequire.length === 0) {
-                module.init(octopus, context);
+                module.init(octopus, [], context);
                 continue;
             }
 
@@ -69,7 +69,7 @@ export class W3oModuleManager implements W3oModuleInstance {
             combineLatest(requirementsSubjects).pipe(
                 filter((value) => value.every((v) => !!v)),
                 take(1)
-            ).subscribe(() => {
+            ).subscribe((requirements) => {
                 // re-check initialization state
                 const missingInit = (resolvedModules as W3oModule[])
                     .filter((m) => !m.initialized$.value)
@@ -84,11 +84,12 @@ export class W3oModuleManager implements W3oModuleInstance {
                         }
                     );
                 } else {
-                    module.init(octopus, context);
+                    module.init(octopus, requirements, context);
                 }
             });
         }
     }
+
     // Parse a version string 'x.y.z' into [x, y, z]
     private parseVersion(version: string): number[] {
         return version.split('.').map((num) => parseInt(num, 10));
@@ -115,4 +116,22 @@ export class W3oModuleManager implements W3oModuleInstance {
         context.debug('version satisfies', { satisfies, actual, expected });
         return satisfies;
     }
+
+
+    // redirect to static W3oModule methods
+    registerModule(module: W3oModule, parent: LoggerContext): void {
+        const context = logger.method('registerModule', { w3oId: module.w3oId, module }, parent);
+        W3oModule.registerModule(module, context);
+    }
+
+    getModule<T extends W3oModule = W3oModule>(w3oId: string, parent: LoggerContext): T | undefined {
+        const context = logger.method('getModule', { w3oId }, parent);
+        return W3oModule.getModule(w3oId, context) as T;
+    }
+
+    getModules(parent: LoggerContext): W3oModule[] {
+        const context = logger.method('getModules', {}, parent);
+        return W3oModule.getModules(context);
+    }
+
 }

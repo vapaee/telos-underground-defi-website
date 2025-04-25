@@ -6,6 +6,7 @@ import { SessionService } from '@app/services/session-kit.service';
 import { LucideAngularModule, User } from 'lucide-angular';
 import { ExpandableManagerService } from '../base-components/expandable/expandable-manager.service';
 import { SharedModule } from '@app/shared/shared.module';
+import { W3oError } from '@vapaee/w3o-core';
 
 @Component({
     selector: 'app-login',
@@ -32,7 +33,8 @@ export class LoginComponent {
         try {
             await this.sessionService.login();
         } catch (error) {
-            console.error('Login failed:', error);
+            console.error('Login canceled:', error);
+            await this.sessionService.logout();
         }
     }
 

@@ -15,25 +15,20 @@ import {
 
 // import the classes to support Antelope (EOSIO) networks
 import {
-    AntelopeNetwork,                      // extends W3oNetwork
     AntelopeTokensService,                // extends W3oService
-    AntelopeBalancesService,              // extends W3oService
-    AntelopeAnchorAuth,                   // extends W3oAuthenticator
+    // AntelopeBalancesService,              // extends W3oService
+    // AntelopeTransferService,              // extends W3oService
+    AntelopeAuthAnchor,
+    TelosZeroNetwork,
+    TelosZeroTestnetNetwork,
 } from '@vapaee/w3o-antelope';
 
-// import the configuration for each of the four Telos networks
-import {
-    TelosZeroConfigJSON,                  TelosZeroNetwork,                  // contains the mainnet native network configuration JSON
-    TelosZeroTestnetConfigJSON,
-    TelosZeroTestnetNetwork,           // contains the testnet native network configuration JSON
-} from '@vapaee/w3o-telos';
-
-import { VortDEXw3oDUMMY } from '@app/types';
+import { VortDEXw3oServices } from '@app/types';
 
 // declare the window.v3o object which is used to store the instance of Web3Octopus so any javascript code can access it through window.v3o
 declare global {
     interface Window {
-        w3o: Web3Octopus<VortDEXw3oDUMMY>;
+        w3o: Web3Octopus<VortDEXw3oServices>;
     }
 }
 
@@ -44,24 +39,21 @@ const logger = new Logger('Web3OctopusService');
 })
 export class Web3OctopusService implements OnDestroy {
     private destroy$ = new Subject<void>();
-    public octopus: Web3Octopus<VortDEXw3oDUMMY>;
-
-
-
+    public octopus: Web3Octopus<VortDEXw3oServices>;
     constructor(
     ) {
         const context = logger.method('constructor');
-        const octopus = new Web3Octopus<VortDEXw3oDUMMY>(context);
+        const octopus = new Web3Octopus<VortDEXw3oServices>(context);
         this.octopus = octopus;
         window.w3o = octopus; // assign the instance to the window object so it can be accessed from anywhere
         try {
             // ---- Register Telos/EOS support ----
-            const telosEosSupportSettings: W3oNetworkSupportSettings = {
+            const telosSupportSettings: W3oNetworkSupportSettings = {
                 // Network type
                 type: 'antelope',
                 // list of supported wallets for Antelope networks
                 auth: [
-                    new AntelopeAnchorAuth(context)
+                    new AntelopeAuthAnchor(context)
                 ],
                 // list of supported Antelope networks
                 networks: [
@@ -69,22 +61,25 @@ export class Web3OctopusService implements OnDestroy {
                     new TelosZeroTestnetNetwork({}, context),
                 ]
             }
-            this.octopus.addNetworkSupport(telosEosSupportSettings, context);
+            this.octopus.addNetworkSupport(telosSupportSettings, context);
 
             // ---- Register the services ----
             // paths must match the keys in the IMyServices interface
             const services: W3oService[] = [
-                new AntelopeTokensService('zero.tokens', context),
-                new AntelopeBalancesService('zero.balances', context),
+                new AntelopeTokensService('tokens', context),
+                // new AntelopeBalancesService('zero.balances', context),
+                // new AntelopeTransferService('zero.transfer', context),
             ];
             octopus.registerServices(services);
             octopus.init(
                 {
+                    appName: 'VortDEX',
                     multiSession: false,
                     autoLogin: true,
                 },
                 context
             );
+
         } catch (error) {
             context.error('constructor', error);
         }

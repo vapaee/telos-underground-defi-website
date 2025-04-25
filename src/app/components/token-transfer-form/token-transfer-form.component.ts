@@ -5,7 +5,6 @@ import { Balance, TransferStatus } from '@app/types';
 import { TokenBalanceService } from '@app/services/token-balance.service';
 import { TokenTransferService } from '@app/services/token-transfer.service';
 import { SessionService } from '@app/services/session-kit.service';
-import { AccountKitService } from '@app/services/account-kit.service';
 import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 import { AbstractControl } from '@angular/forms';
 import { timer, of, catchError, map, switchMap } from 'rxjs';
@@ -37,7 +36,6 @@ export class TokenTransferFormComponent implements OnInit, OnDestroy {
         private tokenBalanceService: TokenBalanceService,
         private tokenTransferService: TokenTransferService,
         private sessionService: SessionService,
-        private accountKitService: AccountKitService,
         private expandableManager: ExpandableManagerService
     ) {}
 
@@ -129,7 +127,7 @@ export class TokenTransferFormComponent implements OnInit, OnDestroy {
                 return of(null);
             }
             return timer(300).pipe(
-                switchMap(() => this.accountKitService.validateAccount(control.value)),
+                switchMap(() => this.sessionService.validateAccount(control.value)),
                 map(exists => exists ? null : { accountNotFound: true }),
                 catchError(() => of({ accountNotFound: true }))
             );
@@ -149,7 +147,7 @@ export class TokenTransferFormComponent implements OnInit, OnDestroy {
             const precisionFactor = Math.pow(10, this.balance.token.precision);
             const rawBalance = this.balance.amount.raw;
 
-            if (amount * precisionFactor > rawBalance) {
+            if (amount * precisionFactor > parseInt(rawBalance)) {
                 return { outOfBalance: true };
             }
 

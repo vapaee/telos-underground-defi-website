@@ -1,12 +1,13 @@
 // w3o-core/src/classes/W3oContractManager.ts
 
-import { Observable } from 'rxjs';
+import { BehaviorSubject, filter, Observable, tap } from 'rxjs';
 import {
     W3oAuthInstance,
     W3oAuthSupportName,
     W3oGlobalSettings,
     W3oNetworkType,
-    W3oInstance
+    W3oInstance,
+    W3oNetworkName
 } from '../types';
 
 import { Logger, LoggerContext } from './Logger';
@@ -39,15 +40,6 @@ export class W3oAuthManager implements W3oAuthInstance {
         if (this.__initialized) {
             throw new W3oError(W3oError.ALREADY_INITIALIZED, { name: 'W3oAuthManager', message: 'Auth manager already initialized' });
         }
-        // iterate over the __byName object and call the init method of each W3oAuthSupport instance
-        // for (const authName in this.__byName) {
-        //     const auth = this.__byName[authName];
-        //     if (auth) {
-        //         auth.init(octopus, context);
-        //     } else {
-        //         throw new W3oError(W3oError.AUTH_SUPPORT_NOT_FOUND, { name: authName });
-        //     }
-        // }
         this.__initialized = true;
     }
 
@@ -74,53 +66,100 @@ export class W3oAuthManager implements W3oAuthInstance {
     }
 
     // Method to create an authenticator from its name
-    createAuthenticator(name: W3oAuthSupportName, parent: LoggerContext): W3oAuthenticator {
-        logger.method('createAuthenticator', {name}, parent);
+    createAuthenticator(name: W3oAuthSupportName, network: W3oNetwork, parent: LoggerContext): W3oAuthenticator {
+        logger.method('createAuthenticator', {name, network}, parent);
         const auth = this.get(name);
         if (!auth) {
             throw new W3oError(W3oError.AUTH_SUPPORT_NOT_FOUND, {name});
         }
-        return auth.createAuthenticator(parent);
+        return auth.createAuthenticator(network, parent);
     }
 
     // Main method to authenticate a user from a service
     login(
+        chain: W3oNetworkName,
         network: W3oNetworkType,
         authName: W3oAuthSupportName,
         parent: LoggerContext
     ): Observable<W3oSession> {
-        const context = logger.method('login', {network, authName}, parent);
+        // Create a logging context for this method
+        const context = logger.method('login', { chain, network, authName }, parent);
+
+        // Retrieve the requested authentication support
         const auth = this.get(authName);
         if (!auth) {
-            throw new W3oError(W3oError.AUTH_SUPPORT_NOT_FOUND, {authName});
+            // Throw an error if the requested authName is not found
+            throw new W3oError(W3oError.AUTH_SUPPORT_NOT_FOUND, { authName });
         }
-        const obs = new Observable<W3oSession>(subscriber => {
-            try {
-                // 1. Get the network instance
-                const networkInstance: W3oNetwork = this.octopus.networks.getNetwork(network, context);
 
-                // 2. Create an authenticator
-                const authenticator: W3oAuthenticator = auth.createAuthenticator(context);
+        // Create a BehaviorSubject that will hold the last emitted W3oSession
+        const subject = new BehaviorSubject<W3oSession | null>(null);
 
-                // 3. Call authenticator.login to get an account
-                authenticator.login(network, context).subscribe({
-                    next: account => {
-                        // 4. Create a new session
-                        const session = this.octopus.sessions.createCurrentSession(account.getAddress(), authenticator, networkInstance, context);
+        try {
+            // 1. Get the corresponding network instance
+            const networkInstance: W3oNetwork = this.octopus.networks
+                .getNetwork(chain, context);
 
-                        // 5. Notify the subscriber of the created session
-                        subscriber.next(session);
-                        subscriber.complete();
-                    },
-                    error: err => {
-                        subscriber.error(err);
-                    }
-                });
-            } catch (error) {
-                subscriber.error(error);
-            }
-        });
-        return obs;
+            // 2. Create the authenticator specified by authName
+            const authenticator: W3oAuthenticator = auth
+                .createAuthenticator(networkInstance, context);
+
+            // 3. Call authenticator.login() immediately to start the authentication
+            authenticator.login(chain, context).subscribe({
+                next: account => {
+                    // 4. When the account is returned, create a new session
+                    context.log('-> createCurrentSession', { account: account.getAddress(), authenticator, networkInstance });
+                    const session = this.octopus.sessions
+                        .createCurrentSession(
+                            account.getAddress(),
+                            authenticator,
+                            networkInstance,
+                            context
+                        );
+
+                    // 5. Emit the session and complete the subject
+                    subject.next(session);
+                    subject.complete();
+                },
+                error: err => {
+                    // Emit any authentication error
+                    subject.error(err);
+                }
+            });
+        } catch (error) {
+            // Catch synchronous exceptions and emit them as well
+            context.error(error);
+            subject.error(error);
+        }
+
+        // Return the BehaviorSubject filtered to emit only non-null values
+        return subject.pipe(
+            filter(session => session !== null), // Filter out null values
+        );
+    }
+
+    autoLogin(parent: LoggerContext): Observable<void> {
+        const context = logger.method('autoLogin',undefined, parent);
+        return this.octopus.sessions.loadSessions(context).pipe(
+            tap(() => {
+                const session = this.octopus.sessions.current;
+                if (session) {
+                    context.debug('autoLogin', {session});
+                } else {
+                    context.warn('autoLogin', 'No session found to auto-login');
+                }
+            })
+        );
+    }
+
+    logout(parent: LoggerContext): Observable<void> {
+        const context = logger.method('logout',undefined, parent);
+        const session = this.octopus.sessions.current;
+        if (!session) {
+            throw new W3oError(W3oError.SESSION_NOT_FOUND, { sessions: this.octopus.sessions.snapshot() });
+        }
+        session.logout(context);
+        return session.onLogout$;
     }
 
     // Method to take a snapshot of the auth manager state

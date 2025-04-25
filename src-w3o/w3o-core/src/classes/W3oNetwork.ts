@@ -1,6 +1,7 @@
-import { Observable } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
 
 import {
+    W3oInstance,
     W3oNetworkSettings,
     W3oNetworkType,
 } from '../types';
@@ -15,6 +16,7 @@ const logger = new Logger('W3oNetwork');
 // Clase abstracta que representa una red específica, incluyendo métodos para obtener información sobre la red y sus contratos
 export abstract class W3oNetwork extends W3oModule {
     private __contractCtrl: W3oContractManager;
+    private __tokens$ = new BehaviorSubject<W3oToken[]>([]);
 
     constructor(
         public readonly settings: W3oNetworkSettings,
@@ -34,7 +36,44 @@ export abstract class W3oNetwork extends W3oModule {
     get name(): string {
         return this.settings.name;
     }
-    
+
+    // Getter para obtener un observable con los tokens de la red
+    get tokens$(): Observable<W3oToken[]> {
+        return this.__tokens$.asObservable();
+    }
+
+    // Getter para obtener la lista de tokens de la red
+    get tokens(): W3oToken[] {
+        return this.__tokens$.getValue();
+    }
+
+    override init(octopus: W3oInstance, requirements: W3oModule[], parent: LoggerContext): void {
+        const context = logger.method('init', { w3oId: this.w3oId, octopus, requirements }, parent);
+        this.fetchTokens(context).subscribe(tokens => {
+            context.info('Tokens fetched', { tokens });
+            this.__tokens$.next(tokens);
+            super.init(octopus, requirements, context);
+        });
+    }
+
+    fetchTokens(parent: LoggerContext): Observable<W3oToken[]> {
+        const context = logger.method('fetchTokens', { w3oId: this.w3oId }, parent);
+        return new Observable<W3oToken[]>(subscriber => {
+            fetch(this.settings.tokensUrl)
+                .then(response => response.json())
+                .then((tokens: W3oToken[]) => {
+                    context.info('Tokens fetched', { w3oId: this.w3oId, tokens });
+                    this.__tokens$.next(tokens);
+                    subscriber.next(tokens);
+                    subscriber.complete();
+                })
+                .catch(error => {
+                    context.error('Error fetching tokens', { error });
+                    subscriber.error(error);
+                });
+        });
+    }
+
     // Método abstracto para obtener el tipo de red
     getNetworkType(): W3oNetworkType {
         return this.type;
@@ -43,7 +82,7 @@ export abstract class W3oNetwork extends W3oModule {
     // Método para obtener un token a partir de su dirección o symbolo
     getToken(token: string, parent: LoggerContext): W3oToken | null {
         logger.method('getToken', {token}, parent);
-        return this.getTokensList().find(t => t.symbol === token || t.address === token) || null;
+        return this.tokens.find(t => t.symbol === token || t.address === token) || null;
     }
 
     // Método para obtener el manejador de contratos de la red
@@ -57,10 +96,19 @@ export abstract class W3oNetwork extends W3oModule {
     // Método abstracto para obtener el token del sistema de la red
     abstract getSystemToken(): W3oToken;
 
-    // Método abstracto para obtener la lista de tokens de la red
-    abstract getTokensList(): W3oToken[];
-
     // Método abstracto para actualizar el estado de la red
     abstract updateState(): Observable<void>;
+
+    // Método abstracto para realizar una consulta a un contrato específico o a la read
+    abstract queryContract(params: { [key: string]: any }): Observable<any>;
+
+    // Método abstracto para validar si un account existe en la red
+    validateAccount(address: string, parent: LoggerContext): Observable<boolean> {
+        logger.method('validateAccount', {address}, parent);
+        return new Observable<boolean>(subscriber => {
+            subscriber.next(true); // Simulate a successful validation (Ethereum, Solana, etc.)
+            subscriber.complete();
+        });
+    }
 
 }

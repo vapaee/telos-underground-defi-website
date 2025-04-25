@@ -3,14 +3,32 @@ import { W3oContract } from "./W3oContract";
 // Representa un token, incluyendo métodos para obtener información del token y su contrato asociado
 export abstract class W3oToken {
 
-    // Getter para obtener el símbolo del token
+    get name(): string {
+        return this.getDisplayName();
+    }
+
     get symbol(): string {
         return this.getSymbol();
     }
 
-    // Getter para obtener al dirección del contrato del token
+    get account(): string {
+        return this.getContract().address;
+    }
+
     get address(): string {
         return this.getContract().address;
+    }
+
+    get precision(): number {
+        return this.getDecimals();
+    }
+
+    get logo(): string {
+        return this.getIconUrl();
+    }
+
+    get chain(): string {
+        return 'chain?';
     }
 
     // Método abstracto para verificar si es el token del sistema

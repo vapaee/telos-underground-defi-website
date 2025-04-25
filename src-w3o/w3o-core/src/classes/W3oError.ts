@@ -1,5 +1,7 @@
 // w3o-core/src/classes/W3oError.ts
 
+import { Logger, LoggerContext } from "./Logger";
+
 // Represents a specific error within Web3 Octopus
 export class W3oError extends Error {
     public code: number;
@@ -10,6 +12,37 @@ export class W3oError extends Error {
         this.code = error.code;
         this.payload = payload;
         this.name = 'W3oError';
+        const context = Logger.current;
+        this.print(context.prefix, context);
+    }
+
+    public override toString(): string {
+        return `${this.name} [${this.code}]: ${this.message}`;
+    }
+
+    public print(prefix: string = '', context: LoggerContext | undefined = undefined): void {
+        if (context) {
+            if (this.payload) {
+                context.error(prefix + this.toString(), this.payload);
+            } else {
+                context.error(prefix + this.toString());
+            }
+        } else {
+            if (this.payload) {
+                console.error(prefix + this.toString(), this.payload);
+            } else {
+                console.error(prefix + this.toString());
+            }
+        }
+    }
+
+    public static print(t: unknown, e?: unknown, p?: LoggerContext): void {
+        if (typeof t === 'string' && e instanceof W3oError) {
+            e.print(t, p);
+        } else if (t instanceof W3oError) {
+            t.print('', p);
+        }
+        console.error( !!t ? t : 'Unknown error:', e);
     }
 
     // List of error codes
@@ -33,9 +66,13 @@ export class W3oError extends Error {
     public static readonly SESSION_ALREADY_EXISTS = { message: 'Session already exists', code: 1017 };
     public static readonly SESSION_LOAD_ERROR = { message: 'Session load error', code: 1018 };
     public static readonly SESSION_ALREADY_SET = { message: 'Session already set', code: 1019 };
+    public static readonly SESSION_NOT_SET = { message: 'Session not set', code: 1020 };
+    public static readonly SETTINGS_NOT_FOUND = { message: 'Settings not found', code: 1021 };
+    public static readonly SUPPORT_NOT_FOUND = { message: 'Support not found', code: 1022 };
+    public static readonly SESSION_MISSING_KEY = { message: 'Session missing key', code: 1023 };
+    public static readonly READ_ONLY_AUTHENTICATOR = { message: 'Read only authenticator', code: 1024 };
+    public static readonly KEY_NOT_FOUND = { message: 'Key not found', code: 1025 };
 }
 
 
-const e: Error = new W3oError(W3oError.NETWORK_NOT_FOUND);
-console.log(e.message);
 

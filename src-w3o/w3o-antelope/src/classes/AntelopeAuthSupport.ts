@@ -6,6 +6,7 @@ import {
     W3oAuthenticator,
     W3oAuthSupport,
     W3oAuthSupportName,
+    W3oNetwork,
     W3oNetworkName,
     W3oNetworkType,
     W3oTransaction,
@@ -24,10 +25,4 @@ export abstract class AntelopeAuthSupport extends W3oAuthSupport {
         const context = logger.method('constructor', undefined, parent);
         super(name, 'antelope' as W3oNetworkType, context);
     }
-    // Abstract methods from W3oAuthSupport
-    override createAuthenticator(parent?: LoggerContext): W3oAuthenticator {
-        const context = logger.method('createAuthenticator', undefined, parent);
-        return new W3oAuthenticator(this, context);
-    }
-
 }

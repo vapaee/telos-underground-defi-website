@@ -1,4 +1,5 @@
-import { W3oAddress } from '../types';
+import { Observable, Subject } from 'rxjs';
+import { W3oAddress, W3oSessionInstance } from '../types';
 
 import { Logger, LoggerContext } from './Logger';
 import { W3oAuthenticator } from './W3oAuthenticator';
@@ -13,12 +14,14 @@ export class W3oSession {
     public static readonly ID_SEPARATOR = '--';
 
     // storage for user custom properties for the session
-    private __storage: {[key in string]: any} = {};
+    // private __storage: {[key in string]: any} = {};
     // identifier for the session
     private __id: string = '';
+    onLogout$: Subject<any> = new Subject<any>();
 
     constructor(
-        public readonly address: W3oAddress, 
+        public readonly manager: W3oSessionInstance,
+        public readonly address: W3oAddress,
         public readonly authenticator: W3oAuthenticator,
         public readonly network: W3oNetwork,
         parent: LoggerContext,
@@ -31,25 +34,14 @@ export class W3oSession {
     get id(): string {
         return this.__id;
     }
-    
-    // Método para almacenar un valor en la sesión
-    set<TData>(key: string, value: TData): void {
-        this.__storage[key] = value;
-    }
 
-    // Método para recuperar un valor de la sesión
-    get<TData>(key: string): TData {
-        return this.__storage[key] as TData;
-    }
-
-    // Método para eliminar un valor de la sesión
-    remove(key: string): void {
-        delete this.__storage[key];
-    }
-
-    // Metodo para obtener las claves almacenadas en la sesión
-    keys(): string[] {
-        return Object.keys(this.__storage);
+    logout(parent: LoggerContext) {
+        const context = logger.method('logout', undefined, parent);
+        this.authenticator.logout(context);
+        this.manager.deleteSession(this.id, context);
+        // emit logout event
+        this.onLogout$.next(null);
+        this.onLogout$.complete();
     }
 
     // Método para tomar una instantánea del estado de la sesión
@@ -57,7 +49,6 @@ export class W3oSession {
         return {
             authenticator: this.authenticator.snapshot(),
             network: this.network.snapshot(),
-            __storage: { ...this.__storage }
         };
     }
 }

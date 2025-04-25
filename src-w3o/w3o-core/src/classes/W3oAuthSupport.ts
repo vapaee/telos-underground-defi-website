@@ -13,6 +13,7 @@ import { W3oModule } from './W3oModule';
 import { W3oAuthenticator } from './W3oAuthenticator';
 import { W3oTransactionResponse } from './W3oTransactionResponse';
 import { W3oAccount } from './W3oAccount';
+import { W3oNetwork } from './W3oNetwork';
 
 const logger = new Logger('W3oAuthSupport');
 
@@ -28,24 +29,24 @@ export abstract class W3oAuthSupport extends W3oModule {
     }
 
     // Método para crear un autenticador
-    createAuthenticator(parent: LoggerContext): W3oAuthenticator {
-        const context = logger.method('createAuthenticator', undefined, parent);
-        return new W3oAuthenticator(this, context);
+    createAuthenticator(network: W3oNetwork, parent: LoggerContext): W3oAuthenticator {
+        const context = logger.method('createAuthenticator', {network}, parent);
+        return new W3oAuthenticator(this, network, context);
     }
 
     // Método abstracto para verificar si el autenticador es de solo lectura
     abstract isReadOnly(): boolean;
 
     // Método abstracto para firmar una transacción
-    abstract signTransaction(trx: W3oTransaction, parent: LoggerContext): Observable<W3oTransactionResponse>;
+    abstract signTransaction(auth: W3oAuthenticator, trx: W3oTransaction, parent: LoggerContext): Observable<W3oTransactionResponse>;
 
     // Método abstracto para iniciar sesión en una red específica
-    abstract login(network: W3oNetworkName, parent: LoggerContext): Observable<W3oAccount>;
+    abstract login(auth: W3oAuthenticator, network: W3oNetworkName, parent: LoggerContext): Observable<W3oAccount>;
 
     // Método abstracto para iniciar sesión automáticamente en una red específica
-    abstract autoLogin(network: W3oNetworkName, address: W3oAddress, parent: LoggerContext): Observable<W3oAccount>;
+    abstract autoLogin(auth: W3oAuthenticator, network: W3oNetworkName, address: W3oAddress, parent: LoggerContext): Observable<W3oAccount>;
 
     // Método abstracto para cerrar sesión
-    abstract logout(parent: LoggerContext): void;
+    abstract logout(auth: W3oAuthenticator, parent: LoggerContext): void;
 
 }

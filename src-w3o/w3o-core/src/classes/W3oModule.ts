@@ -8,11 +8,14 @@ const logger = new Logger('W3oModule');
 
 // Clase abstracta que representa un módulo (authenticador, network o servicio), su ID ()
 export abstract class W3oModule {
-    initialized$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
+    private _octopus!: W3oInstance;
+    private _requirements!: W3oModule[];
+    initialized$: BehaviorSubject<W3oModule | false> = new BehaviorSubject<W3oModule | false>(false);
 
+    // Static registry of modules
     static modules: {[w3oId: string]: W3oModule} = {};
     static registerModule(module: W3oModule, parent: LoggerContext): void {
-        logger.method('registerModule', { module }, parent);
+        logger.method('registerModule', { w3oId: module.w3oId, module }, parent);
         if (W3oModule.modules[module.w3oId]) {
             throw new Error(`Module ${module.w3oId} already registered`);
         }
@@ -44,11 +47,28 @@ export abstract class W3oModule {
         }
     }
 
+    get octopus(): W3oInstance {
+        if (!this._octopus) {
+            throw new Error('Module not initialized. Try to initialize yourself after W3oModule constructor');
+        }
+        return this._octopus;
+    }
+
+    get requirements(): W3oModule[] {
+        if (!this._requirements) {
+            throw new Error('Module not initialized. Try to initialize yourself after W3oModule constructor');
+        }
+        return this._requirements;
+    }
+
+
     // Método abstracto que deberá ser implementado por los móidulos que lo necesiten
     // esta función será llamada cuando todos los módulos requeridos estén inicializados
-    init(octopus: W3oInstance, parent: LoggerContext): void {
-        logger.method('init', { w3oId: this.w3oId, octopus }, parent);
-        this.initialized$.next(true);
+    init(octopus: W3oInstance, requirements: W3oModule[], parent: LoggerContext): void {
+        logger.method('init', { w3oId: this.w3oId, octopus, requirements }, parent);
+        this._octopus = octopus;
+        this._requirements = requirements;
+        this.initialized$.next(this);
     }
 
     // Método abstracto para obtener la versión del módulo

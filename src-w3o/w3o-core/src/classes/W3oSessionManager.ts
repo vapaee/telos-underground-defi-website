@@ -1,6 +1,6 @@
-// w3o-core\src\classes\W3oSessionManager.ts
+// w3o-core/src/classes/W3oSessionManager.ts
 
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, defer, mapTo, Observable, of, tap, throwError } from 'rxjs';
 
 import {
     W3oAddress,
@@ -25,13 +25,17 @@ const STORAGE_KEY = 'w3o-sessions';
 
 export class W3oSessionManager implements W3oSessionInstance {
     private __initialized = false;
-    private __sessions: {[key: string]: W3oSession} = {};
+    private __sessions: { [key: string]: W3oSession } = {};
     private __multiSession: boolean;
     private __autologin = false;
 
-    private octopus!: W3oInstance;
-    public onCurrentSessionChange$: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
+    public current$: BehaviorSubject<W3oSession | null> = new BehaviorSubject<W3oSession | null>(null);
 
+    octopus!: W3oInstance;
+
+    /**
+     * Initializes the session manager with settings and sets up subscription for session changes.
+     */
     constructor(
         settings: W3oGlobalSettings,
         parent: LoggerContext
@@ -40,55 +44,67 @@ export class W3oSessionManager implements W3oSessionInstance {
         this.__multiSession = settings.multiSession;
         this.__autologin = settings.autoLogin;
 
-        this.onCurrentSessionChange$.subscribe(() => {
-            context.log('session change detected');
+        this.current$.subscribe((session) => {
+            context.log('session change detected', { session });
             this.saveSessions(context);
         });
     }
 
-    // Getter para obtener el ID de la sesión actual
+    /**
+     * Returns the current session ID, or null if none is set.
+     */
     get currentSessionId(): string | null {
-        return this.onCurrentSessionChange$.value;
+        const session = this.current$.value;
+        return session ? session.id : null;
     }
 
-    // Getter para obtener la sesión actual
-    get current() {
-        const id = this.currentSessionId;
-        if (!id) {
-            throw new W3oError(W3oError.SESSION_NOT_FOUND, { id })
-        }
-        return this.__sessions[id];
+    /**
+     * Returns the current session instance, or throws if not found.
+     */
+    get current(): W3oSession | null {
+        return this.current$.value;
     }
 
-    // Getter para obtener la lista de sesiones
+    /**
+     * Returns a list of all stored session instances.
+     */
     get list(): W3oSession[] {
         return Object.values(this.__sessions);
     }
 
-    // Getter para obtener si se permite multi-sesión
+    /**
+     * Indicates whether multiple sessions are allowed.
+     */
     get isMultiSession(): boolean {
         return this.__multiSession;
     }
 
-    // Método para inicializar el manejador de sesiones
+    /**
+     * Initializes the manager with an octopus instance and handles network changes.
+     */
     init(
         octopus: W3oInstance,
         parent: LoggerContext,
     ): void {
         const context = logger.method('init', { octopus }, parent);
         if (this.__initialized) {
-            throw new W3oError(W3oError.ALREADY_INITIALIZED, { name: 'W3oSessionManager', message: 'Session manager already initialized' });
+            throw new W3oError(
+                W3oError.ALREADY_INITIALIZED,
+                { name: 'W3oSessionManager', message: 'Session manager already initialized' }
+            );
         }
         this.octopus = octopus;
         octopus.networks.onNetworkChange$.subscribe(() => {
-            context.debug('network change detected -> change session to null');
-            this.onCurrentSessionChange$.next(null);
+            context.debug('network change detected -> clearing current session');
+            this.current$.next(null);
         });
         this.__initialized = true;
-        this.loadSessions(context);
+        // this.loadSessions(context);
     }
 
-    // Método para crear una sesión
+    /**
+     * Creates a new session for the given address, authenticator, and network.
+     */
     createSession(
         address: W3oAddress,
         authenticator: W3oAuthenticator,
@@ -96,17 +112,17 @@ export class W3oSessionManager implements W3oSessionInstance {
         parent: LoggerContext
     ): W3oSession {
         const context = logger.method('createSession', { address, authenticator, network }, parent);
-        const session = new W3oSession(address, authenticator, network, context);
-        // verificamos que la sessión no exista y la agregamos
+        const session = new W3oSession(this, address, authenticator, network, context);
         if (this.__sessions[session.id]) {
             throw new W3oError(W3oError.SESSION_ALREADY_EXISTS, { id: session.id });
         }
         this.__sessions[session.id] = session;
-        authenticator.setSessionId(session.id, context);
         return session;
     }
 
-    // Método para crear una sesión y setearla como la sesión actual
+    /**
+     * Creates a new session and sets it as the current one.
+     */
     createCurrentSession(
         address: W3oAddress,
         authenticator: W3oAuthenticator,
@@ -115,56 +131,92 @@ export class W3oSessionManager implements W3oSessionInstance {
     ): W3oSession {
         const context = logger.method('createCurrentSession', { address, authenticator, network }, parent);
         const session = this.createSession(address, authenticator, network, context);
-        // verificamos que la sessión no exista
-        if (this.__sessions[session.id]) {
-            throw new W3oError(W3oError.SESSION_ALREADY_EXISTS, { id: session.id, message: 'use setCurrentSession(id) instead' });
-        }
         this.setCurrentSession(session.id, parent);
         return session;
     }
 
-    // Método para obtener una sesión por su ID
+    /**
+     * Retrieves a specific session by its ID.
+     */
     getSession(id: string, parent: LoggerContext): W3oSession {
         logger.method('getSession', { id }, parent);
         const session = this.__sessions[id];
         if (!session) {
-            throw new W3oError(W3oError.SESSION_NOT_FOUND, { id })
+            throw new W3oError(W3oError.SESSION_NOT_FOUND, { id });
         }
         return session;
     }
 
-    // Método para obtener todas las sesiones
+    /**
+     * Retrieves a from the context instance.
+     * */
+    getSessionFromContext(context: LoggerContext): W3oSession {
+        logger.method('getSessionFromContext', undefined, context);
+        console.error('SIN IMPLEMENTAR')
+        const session = this.__sessions['context.sessionId'];
+        if (!session) {
+            throw new W3oError(W3oError.SESSION_NOT_FOUND, { id: 'context.sessionId' });
+        }
+        return session;
+    }
+
+    /**
+     * Returns all existing sessions.
+     */
     getSessions(parent: LoggerContext): W3oSession[] {
         logger.method('getSessions', undefined, parent);
         return this.list;
     }
 
-    // Método para eliminar una sesión por su ID
+    /**
+     * Deletes the session with the specified ID.
+     */
     deleteSession(id: string, parent: LoggerContext): void {
-        logger.method('deleteSession', { id }, parent);
+        const context = logger.method('deleteSession', { id }, parent);
+        const isCurrent = this.currentSessionId === id;
         if (!this.__sessions[id]) {
-            throw new W3oError(W3oError.SESSION_NOT_FOUND, { id })
+            throw new W3oError(W3oError.SESSION_NOT_FOUND, { id });
         }
+        const deletedSession = this.__sessions[id];
         delete this.__sessions[id];
-        this.onCurrentSessionChange$.next(null);
+
+        // we switch to the first session if the current session is deleted
+        context.log('Deleted session', { deletedSession });
+        if (isCurrent) {
+            const sessions = this.list;
+            if (sessions.length > 0) {
+                context.log('Switching to the first session', { sessions });
+                this.current$.next(sessions[0]);
+            } else {
+                context.log('No sessions left, setting current session to null');
+                this.current$.next(null);
+            }
+        }
     }
 
-    // Método para establecer la sesión actual
+    /**
+     * Sets the current session by its ID.
+     */
     setCurrentSession(id: string, parent: LoggerContext): void {
         logger.method('setCurrentSession', { id }, parent);
-        if (!this.__sessions[id]) {
-            throw new W3oError(W3oError.SESSION_NOT_FOUND, { id })
+        const session = this.__sessions[id];
+        if (!session) {
+            throw new W3oError(W3oError.SESSION_NOT_FOUND, { id });
         }
-        this.onCurrentSessionChange$.next(id);
+        this.current$.next(session);
     }
 
-    // Método para obtener la sesión actual
-    getCurrentSession(parent: LoggerContext): W3oSession {
+    /**
+     * Retrieves the current session instance.
+     */
+    getCurrentSession(parent: LoggerContext): W3oSession | null {
         logger.method('getCurrentSession', undefined, parent);
         return this.current;
     }
 
-    // Método para salvar en local storage la información de las sessiones abiertas y cual es la actual
+    /**
+     * Persists session information to localStorage.
+     */
     saveSessions(parent: LoggerContext): void {
         logger.method('saveSessions', undefined, parent);
         const stored: W3oStoredSessions = {
@@ -174,50 +226,82 @@ export class W3oSessionManager implements W3oSessionInstance {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
     }
 
-    // Método para cargar desde local storage la información de las sessiones abiertas y cual es la actual
-    loadSessions(parent: LoggerContext): void {
+    loadSessions(parent: LoggerContext): Observable<void> {
         const context = logger.method('loadSessions', undefined, parent);
-        // primero verificamos que no haya sesiones abiertas
-        if (this.list.length > 0) {
-            throw new W3oError(W3oError.SESSION_ALREADY_EXISTS, { id: this.currentSessionId, message: 'close all sessions before loading' });
-        }
-        try {
-            const stored = localStorage.getItem(STORAGE_KEY);
+
+        return defer(() => {
+            // Prevent loading if sessions already exist
+            if (this.list.length > 0) {
+                return throwError(() => new W3oError(
+                    W3oError.SESSION_ALREADY_EXISTS,
+                    { id: this.currentSessionId, message: 'close all sessions before loading' }
+                ));
+            }
+
+            let stored: string | null;
+            try {
+                stored = localStorage.getItem(STORAGE_KEY);
+            } catch (e) {
+                return throwError(() => new W3oError(
+                    W3oError.SESSION_LOAD_ERROR,
+                    { message: (e as Error).message }
+                ));
+            }
+
             if (stored) {
-                context.log('sessions found in local storage');
+                let isFirstSession = true;
                 const data = JSON.parse(stored) as W3oStoredSessions;
+                context.log('sessions found in local storage', { data });
+
                 const separator = W3oSession.ID_SEPARATOR;
                 for (const id of data.sessions) {
-                    const [address, authName, netwokName] = id.split(separator);
-                    const network = this.octopus.networks.getNetwork(netwokName, context);
-                    const authenticator = this.octopus.auth.createAuthenticator(authName, context);
-                    this.createSession(address, authenticator, network, context);
+                    const [address, authenticatorName, networkName] = id.split(separator);
+                    const network = this.octopus.networks.getNetwork(networkName, context);
+                    const authenticator = this.octopus.auth.createAuthenticator(
+                        authenticatorName,
+                        network,
+                        context
+                    );
+                    console.log('There are ', data.sessions.length, ' sessions in local storage', { address, authenticatorName, networkName });
+                    if (isFirstSession) {
+                        this.createCurrentSession(address, authenticator, network, context);
+                        isFirstSession = false;
+                    } else {
+                         this.createSession(address, authenticator, network, context);
+                    }
                 }
+
+                // If autologin is enabled, return the autoLogin Observable
                 if (this.__autologin && data.currentSessionId) {
                     const session = this.__sessions[data.currentSessionId];
                     if (!session) {
-                        throw new W3oError(W3oError.SESSION_NOT_FOUND, {
-                            id: data.currentSessionId,
-                            message: 'could not perform autologin'
-                        });
+                        return throwError(() => new W3oError(
+                            W3oError.SESSION_NOT_FOUND,
+                            { id: data.currentSessionId, message: 'could not perform autologin' }
+                        ));
                     }
-                    session.authenticator.autoLogin(session.network.settings.name, session.address, context).subscribe(() => {
-                        this.setCurrentSession(session.id, context);
-                    });
+                    return session.authenticator
+                        .autoLogin(session.network.settings.name, session.address, context)
+                        .pipe(
+                            tap(() => this.setCurrentSession(session.id, context)),
+                            mapTo(void 0)
+                        );
                 }
             } else {
                 context.log('no sessions found in local storage');
             }
-        } catch (e) {
-            throw new W3oError(W3oError.SESSION_LOAD_ERROR, { message: (e as {message: string}).message })
-        }
+            return of(void 0);
+        });
     }
 
-    // Método para tomar una instantánea del estado del manejador de sesiones
+    /**
+     * Returns a snapshot of the manager's state for inspection.
+     */
     snapshot(): any {
         return {
             currentSessionId: this.currentSessionId,
-            sessions: Object.keys(this.__sessions),
+            sessionsKeys: Object.keys(this.__sessions),
+            sessions: this.__sessions,
         };
     }
 }

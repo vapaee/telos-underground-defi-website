@@ -1,3 +1,4 @@
+import { W3oError } from "./W3oError";
 
 
 type LogMethod = 'log' | 'error';
@@ -14,7 +15,7 @@ export class LoggerContext {
     private static uniqueIdCounter = 0;
     private idValue: string;
     private parentContext: LoggerContextParent;
-    // private methodName: string;
+    private methodName: string;
     private argsValue: any;
     private logsArray: LoggedLine[];
     private levelValue: number;
@@ -24,7 +25,7 @@ export class LoggerContext {
         const completedName = `${className}.${methodName}`;
         this.idValue = LoggerContext.generateUniqueId();
         this.parentContext = parent;
-        // this.methodName = methodName;
+        this.methodName = methodName;
         this.argsValue = args;
         this.logsArray = [];
         this.levelValue = parent ? parent.level() : 0;
@@ -54,8 +55,8 @@ export class LoggerContext {
         return this.parentContext;
     }
 
-    args(): any {
-        return this.argsValue;
+    args<T = any>(): T {
+        return this.argsValue as unknown as T;
     }
 
     logs(): LoggedLine[] {
@@ -80,7 +81,7 @@ export class LoggerContext {
 
     branch(): string {
         const father = this.parentContext ? this.parentContext.branch() : 'x';
-        return `${father}${this.idValue.substring(1)}`;
+        return `${father}${this.idValue}`;
     }
 
     get prefix(): string {
@@ -104,7 +105,18 @@ export class LoggerContext {
             m: 'error',
             args
         });
-        console.error(this.prefix, ...args);
+        if (typeof args[0] == 'string' && args[1] instanceof W3oError) {
+            const prefix = this.prefix + ' ' + args[0];
+            const error = args[1] as W3oError;
+            error.print(prefix); // pretty print for W3oError
+        } else if (args[0] instanceof W3oError) {
+            const prefix = this.prefix;
+            const error = args[0] as W3oError;
+            error.print(prefix); // pretty print for W3oError
+        } else {
+            // default error print
+            console.error(this.prefix, ...args);
+        }
     }
 
     info(...args: any[]): void {

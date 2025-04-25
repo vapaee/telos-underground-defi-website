@@ -39,7 +39,7 @@ export class W3oNetworkManager implements W3oNetworkInstance {
     get current() {
         const name = this.currentNetworkName;
         if (!name) {
-            throw new W3oError(W3oError.NETWORK_NOT_FOUND, { name });
+            throw new W3oError(W3oError.NETWORK_NOT_FOUND, { name, snapshot: this.snapshot() });
         }
         return this.getNetwork(name, Logger.current);
     }
@@ -79,7 +79,7 @@ export class W3oNetworkManager implements W3oNetworkInstance {
         logger.method('getNetwork', { name }, parent);
         const network = this.__networks.find(network => network.settings.name === name);
         if (!network) {
-            throw new W3oError(W3oError.NETWORK_NOT_FOUND, { name });
+            throw new W3oError(W3oError.NETWORK_NOT_FOUND, { name, snapshot: this.snapshot() });
         }
         return network;
     }
@@ -89,7 +89,8 @@ export class W3oNetworkManager implements W3oNetworkInstance {
         const context = logger.method('setCurrentNetwork', { name }, parent);
         const net =  this.getNetwork(name, context) as W3oNetwork;
         if (!net) {
-            throw new W3oError(W3oError.NETWORK_NOT_FOUND, { name });
+            context.error
+            throw new W3oError(W3oError.NETWORK_NOT_FOUND, { name, snapshot: this.snapshot() });
         }
         this.onNetworkChange$.next(name);
     }
@@ -110,8 +111,9 @@ export class W3oNetworkManager implements W3oNetworkInstance {
     // Método para tomar una instantánea del estado del manejador de redes
     snapshot(): any {
         return {
+            _class: 'W3oNetworkManager',
             networks: this.__networks.map(network => network.snapshot()),
-            currentNetwork: this.getCurrentNetwork().snapshot(),
+            currentNetworkName: this.currentNetworkName,
         };
     }
 }

@@ -1,8 +1,1 @@
-export interface Token {
-    name: string;
-    symbol: string;
-    account: string;
-    precision: number;
-    logo: string;
-    chain: string;
-}
+export { W3oToken as Token } from '@vapaee/w3o-core';

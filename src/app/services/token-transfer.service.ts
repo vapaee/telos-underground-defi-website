@@ -1,9 +1,11 @@
+// src/app/services/session-kit.service.ts
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, map, Observable } from 'rxjs';
 import { SessionService } from '@app/services/session-kit.service';
 import { TokenBalanceService } from '@app/services/token-balance.service';
 import { TokenListService } from './token-list.service';
 import { Token, TransferStatus, TransferSummary } from '@app/types';
+import { Web3OctopusService } from './web3-octopus.service';
 
 @Injectable({
     providedIn: 'root'
@@ -14,10 +16,11 @@ export class TokenTransferService {
     constructor(
         private sessionService: SessionService,
         private tokenBalanceService: TokenBalanceService,
-        private tokenListService: TokenListService
+        private tokenListService: TokenListService,
+        private w3o: Web3OctopusService,
     ) {
-        // Subscribe to session$ to detect changes
-        this.sessionService.session$.subscribe(session => {
+        // Subscribe to session.current$ to detect changes
+        this.w3o.octopus.sessions.current$.subscribe(session => {
             if (!session) {
                 this.resetAllTransfers(); // Clear all transfer statuses on logout
             }
@@ -45,7 +48,7 @@ export class TokenTransferService {
         tokenSymbol: string,
         state: 'none' | 'success' | 'failure',
         message?: string,
-        summary: TransferSummary | null = null
+        summary?: TransferSummary
     ) {
         const statusMap = this.transferStatus$.getValue();
         statusMap.set(tokenSymbol, { state, message, summary });
@@ -65,7 +68,7 @@ export class TokenTransferService {
         const session = this.sessionService.currentSession;
         if (!session) {
             console.error('❌ No active session. Please log in.');
-            this.setTransferStatus(token.symbol, 'failure', 'No active session.', null);
+            this.setTransferStatus(token.symbol, 'failure', 'No active session.');
             return;
         }
 
@@ -88,6 +91,7 @@ export class TokenTransferService {
                 to,
                 amount: quantity,
                 transaction: txId,
+                memo,
             };
 
             console.log(`🟢 Balance refresh requested for ${token.symbol}.`);
@@ -103,7 +107,7 @@ export class TokenTransferService {
 
             const errorMessage = error instanceof Error ? error.message : 'Transaction failed: Unknown error';
 
-            this.setTransferStatus(token.symbol, 'failure', errorMessage, null);
+            this.setTransferStatus(token.symbol, 'failure', errorMessage);
         }
     }
 }

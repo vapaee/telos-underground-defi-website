@@ -2,11 +2,18 @@ import {
     Logger,
     LoggerContext,
     W3oInstance,
+    W3oModule,
     W3oService,
 } from "@vapaee/w3o-core";
 
+import { AntelopeTokensService } from "./AntelopeTokensService";
+
 const logger = new Logger('AntelopeBalancesService');
 export class AntelopeBalancesService extends W3oService {
+
+    // Other services ------
+    private tokens!: AntelopeTokensService;
+
     constructor(
         path: string,
         parent: LoggerContext
@@ -29,10 +36,11 @@ export class AntelopeBalancesService extends W3oService {
     }
 
     // Module init ------
-    override init(octopus: W3oInstance, parent: LoggerContext): void {
-        const context = logger.method('init', { octopus }, parent);
-        context.info('AntelopeBalancesService OK!', super.w3oId);
-        super.init(octopus, context);
+    override init(octopus: W3oInstance, requirements: W3oModule[], parent: LoggerContext): void {
+        const context = logger.method('init', { octopus, requirements }, parent);
+        super.init(octopus, requirements, context);
+        this.tokens = this.requirements[0] as unknown as AntelopeTokensService;
+        context.info('AntelopeBalancesService OK!', { w3oId: super.w3oId, tokens: this.tokens });
     }
 
     // Module methods ------
