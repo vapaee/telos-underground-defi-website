@@ -1,7 +1,9 @@
-import { Logger, LoggerContext, W3oAccount, W3oAuthenticator } from '@vapaee/w3o-core';
+// w3o-antelope/src/classes/AntelopeAccount.ts
+
+import { W3oContextFactory, W3oContext, W3oAccount, W3oAuthenticator } from '@vapaee/w3o-core';
 import { Session } from '@wharfkit/session';
 
-const logger = new Logger('AntelopeAccount');
+const logger = new W3oContextFactory('AntelopeAccount');
 
 export class AntelopeAccount extends W3oAccount {
 
@@ -9,7 +11,7 @@ export class AntelopeAccount extends W3oAccount {
         address: string,
         session: Session,
         auth: W3oAuthenticator,
-        parent: LoggerContext,
+        parent: W3oContext,
     ) {
         const context = logger.method('constructor', { address, auth, session }, parent);
         super(address, auth as W3oAuthenticator, context);

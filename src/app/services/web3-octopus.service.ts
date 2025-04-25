@@ -10,7 +10,7 @@ import {
     Web3Octopus,                          // the main class
     W3oService,                           // interface that includes the snapshot function
     W3oNetworkSupportSettings,            // interface that includes the network support settings
-    Logger,                               // logger class
+    W3oContextFactory,                    // logger class
 } from '@vapaee/w3o-core';
 
 // import the classes to support Antelope (EOSIO) networks
@@ -32,7 +32,7 @@ declare global {
     }
 }
 
-const logger = new Logger('Web3OctopusService');
+const logger = new W3oContextFactory('Web3OctopusService');
 
 @Injectable({
     providedIn: 'root',
@@ -58,7 +58,7 @@ export class Web3OctopusService implements OnDestroy {
                 // list of supported Antelope networks
                 networks: [
                     new TelosZeroNetwork({}, context),
-                    new TelosZeroTestnetNetwork({}, context),
+                    // new TelosZeroTestnetNetwork({}, context),
                 ]
             }
             this.octopus.addNetworkSupport(telosSupportSettings, context);

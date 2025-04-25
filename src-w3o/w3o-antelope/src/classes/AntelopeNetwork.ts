@@ -1,11 +1,11 @@
+// w3o-antelope/src/classes/AntelopeNetwork.ts
+
 import {
-    Logger,
-    LoggerContext,
+    W3oContext,
+    W3oContextFactory,
     W3oContractManager,
     W3oNetwork,
-    W3oNetworkSettings,
     W3oToken,
-    W3oInstance,
     W3oModule,
 } from "@vapaee/w3o-core";
 
@@ -15,19 +15,26 @@ import { W3oAntelopeNetworkSettings } from "../types";
 import { AntelopeWharfkit, WharfkitInstance } from "./AntelopeWharfkit";
 import { Name } from "@wharfkit/antelope";
 
-const logger = new Logger('AntelopeNetwork');
+const logger = new W3oContextFactory('AntelopeNetwork');
 export class AntelopeNetwork extends W3oNetwork {
 
     private _settings!: W3oAntelopeNetworkSettings;
     private _wharfkit!: WharfkitInstance;
     constructor(
         settings: W3oAntelopeNetworkSettings,
-        parent: LoggerContext
+        parent: W3oContext
     ) {
         const context = logger.method('constructor', {chain: settings.displayName, settings}, parent);
         super(settings, context);
         this._settings = settings;
-        this._wharfkit = AntelopeWharfkit.wharfkit('antelope-network', settings);
+        this.initialized$.subscribe((result) => {
+            if (result) {
+                this._wharfkit = AntelopeWharfkit.wharfkit(this.octopus.settings.appName, settings);
+                logger.log('Wharfkit initialized', { wharfkit: this._wharfkit });
+            } else {
+                context.error(`Module(${this.w3oId}) not initialized correctly`);
+            }
+        });
         W3oModule.registerModule(this, context);
     }
 
@@ -36,6 +43,9 @@ export class AntelopeNetwork extends W3oNetwork {
     }
 
     get wharfkit(): WharfkitInstance {
+        if (!this._wharfkit) {
+            throw new Error(`Wharfkit not initialized. Module(${this.w3oId}). Try to initialize yourself after W3oModule constructor`);
+        }
         return this._wharfkit;
     }
 
@@ -58,10 +68,10 @@ export class AntelopeNetwork extends W3oNetwork {
         };
     }
 
-    override createContractManager(network: W3oNetwork, parent: LoggerContext): W3oContractManager {
+    override createContractManager(network: W3oNetwork, parent: W3oContext): W3oContractManager {
         const context = logger.method('createContractManager', {chain: network.name, network}, parent);
         if (network instanceof AntelopeNetwork) {
-            context.info('AntelopeNetwork contract manager created', parent);
+            logger.info('AntelopeNetwork contract manager created', parent);
             const manager = new AntelopeContractManager(this.settings, network, context);
             return manager;
         } else {
@@ -95,7 +105,7 @@ export class AntelopeNetwork extends W3oNetwork {
         const context = logger.method('queryContract', {params});
         return new Observable<any>((observer) => {
             this.wharfkit.accountKit.client.v1.chain.get_table_rows(params as any).then((result: any) => {
-                context.info('Query result:', {result});
+                logger.info('Query result:', {result});
                 observer.next(result);
                 observer.complete();
             }).catch((error: any) => {
@@ -105,11 +115,11 @@ export class AntelopeNetwork extends W3oNetwork {
         });
     }
 
-    override validateAccount(username: string, parent: LoggerContext): Observable<boolean> {
+    override validateAccount(username: string, parent: W3oContext): Observable<boolean> {
         const context = logger.method('validateAccount', {username}, parent);
         return new Observable<boolean>(subscriber => {
             this.wharfkit.accountKit.client.v1.chain.get_account(Name.from(username)).then((result: any) => {
-                context.info('Account data:', {result});
+                logger.info('Account data:', {result});
                 subscriber.next(true);
                 subscriber.complete();
             }).catch((error) => {

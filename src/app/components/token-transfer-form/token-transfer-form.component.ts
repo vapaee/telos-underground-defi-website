@@ -10,6 +10,7 @@ import { AbstractControl } from '@angular/forms';
 import { timer, of, catchError, map, switchMap } from 'rxjs';
 import { ExpandableManagerService } from '@app/components/base-components/expandable/expandable-manager.service';
 import { SharedModule } from '@app/shared/shared.module';
+import { W3oTransferStatus } from '@vapaee/w3o-core';
 
 @Component({
     selector: 'app-token-transfer-form',
@@ -29,7 +30,7 @@ export class TokenTransferFormComponent implements OnInit, OnDestroy {
     form!: FormGroup;
     isLoading = false;
     private destroy$ = new Subject<void>();
-    transferStatus: TransferStatus = { state: 'none' };
+    transferStatus: W3oTransferStatus = { state: 'none' };
 
     constructor(
         private fb: FormBuilder,
@@ -113,7 +114,7 @@ export class TokenTransferFormComponent implements OnInit, OnDestroy {
 
     selfTransferValidator() {
         return (control: any) => {
-            const sessionActor = this.sessionService.currentSession?.actor?.toString();
+            const sessionActor = this.sessionService.current?.address;
             if (control.value === sessionActor) {
                 return { selfTransfer: true };
             }
@@ -145,9 +146,9 @@ export class TokenTransferFormComponent implements OnInit, OnDestroy {
             if (isNaN(amount) || amount <= 0) return { invalidAmount: true };
 
             const precisionFactor = Math.pow(10, this.balance.token.precision);
-            const rawBalance = this.balance.amount.raw;
+            const balance = this.balance.amount.value;
 
-            if (amount * precisionFactor > parseInt(rawBalance)) {
+            if (amount * precisionFactor > balance) {
                 return { outOfBalance: true };
             }
 
@@ -203,23 +204,22 @@ export class TokenTransferFormComponent implements OnInit, OnDestroy {
         }
 
         const formattedAmount = `${numericAmount.toFixed(this.balance.token.precision)} ${this.balance.token.symbol}`;
-        const sender = this.sessionService.currentSession?.actor;
+        const sender = this.sessionService.current?.address;
 
         if (!sender) {
             return;
         }
 
         const token = this.balance.token;
+        const memo = `Transfer of ${formattedAmount}`;
 
         try {
             this.isLoading = true;
-            await this.tokenTransferService.makeTokenTransaction(
-                sender.toString(),
+            await this.tokenTransferService.transferToken(
                 recipient,
                 formattedAmount,
-                this.balance.token.account,
-                `Transfer of ${formattedAmount}`,
-                token
+                token,
+                memo,
             );
         } catch (error) {
             console.error('Transfer failed:', error);

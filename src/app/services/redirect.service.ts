@@ -6,10 +6,10 @@ import { SessionService } from '@app/services/session-kit.service';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { BREAKPOINT } from '@app/types';
-import { Logger } from '@vapaee/w3o-core';
+import { W3oContextFactory } from '@vapaee/w3o-core';
 
 
-const logger = new Logger('SessionService');
+const logger = new W3oContextFactory('RedirectService');
 
 @Injectable({
     providedIn: 'root',
@@ -40,7 +40,7 @@ export class RedirectService implements OnDestroy {
         this.sessionService.session$
             .pipe(takeUntil(this.destroy$))
             .subscribe(session => {
-                context.debug('Redirect - Session changed:', { session });
+                logger.debug('Redirect - Session changed:', { isMobile, session });
                 if (session) {
                     if (isMobile) {
                         this.router.navigate(['/wallet']);

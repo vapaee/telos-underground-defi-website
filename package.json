@@ -17,7 +17,8 @@
         "clear-telos-bk": "cd src-w3o/w3o-telos && npm run clear",
         "clear-w3o": "npm run clear-core; npm run clear-antelope; npm run clear-telos",
         "clear": "rm -rf node_modules .angular",
-        "test": "ng test"
+        "test": "ng test",
+        "src": "node scripts/concatenate_src.js"
     },
     "private": true,
     "for-develop": {

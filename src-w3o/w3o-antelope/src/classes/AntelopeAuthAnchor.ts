@@ -1,45 +1,53 @@
+// w3o-antelope/src/classes/AntelopeAuthAnchor.ts
+
 import {
-    Logger,
-    LoggerContext,
+    W3oContext,
+    W3oContextFactory,
     W3oAuthSupportName,
     W3oInstance,
     W3oTransaction,
     W3oTransactionResponse,
     W3oAccount,
     W3oNetworkName,
-    W3oAddress,
-    W3oNetwork,
     W3oAuthenticator,
-    W3oGlobalSettings,
     W3oError,
-    W3oService,
-    W3oSession,
     W3oModule,
 } from '@vapaee/w3o-core';
 
 import { AntelopeAuthSupport } from './AntelopeAuthSupport';
 import { Observable } from 'rxjs';
-import { AntelopeWharfkit, WharfkitInstance } from './AntelopeWharfkit';
-import { W3oAntelopeNetworkSettings } from '../types';
+import { WharfkitInstance } from './AntelopeWharfkit';
 import { AntelopeAccount } from './AntelopeAccount';
 import { Session } from '@wharfkit/session';
+import { AntelopeTransaction } from '../types';
+import { AntelopeNetwork } from './AntelopeNetwork';
 
-const logger = new Logger('AntelopeAuthAnchor');
+const logger = new W3oContextFactory('AntelopeAuthAnchor');
 
-
+export class AntelopeTransactionResponse extends W3oTransactionResponse {
+    constructor(hash: string) {
+        super(hash);
+    }
+    wait(): Observable<any> {
+        return new Observable<any>((observer) => {
+            observer.next({ status: 'success' });
+            observer.complete();
+        });
+    }
+}
 
 export class AntelopeAuthAnchor extends AntelopeAuthSupport {
 
     constructor(
-        parent: LoggerContext,
+        parent: W3oContext,
     ) {
-        const context = logger.method('constructor', undefined, parent);
+        const context = logger.method('constructor', parent);
         super('anchor' as W3oAuthSupportName, context);
     }
 
     // Module id ------
     override get w3oVersion(): string {
-        return '0.1.0';
+        return '1.0.0';
     }
     override get w3oName(): string {
         return 'antelope.auth.anchor';
@@ -50,13 +58,18 @@ export class AntelopeAuthAnchor extends AntelopeAuthSupport {
         ];
     }
 
-    // Module init ------
-    override init(octopus: W3oInstance, requirements: W3oModule[], parent: LoggerContext): void {
-        const context = logger.method('init', { octopus, requirements }, parent);
-        super.init(octopus, requirements, context);
-        context.info('AntelopeAuthAnchor OK!', { w3oId: super.w3oId, octopus, requirements });
+    // Method to check if the authenticator is read-only
+    override isReadOnly(): boolean {
+        return false;
     }
 
+
+    // Module init ------
+    override init(octopus: W3oInstance, requirements: W3oModule[], parent: W3oContext): void {
+        const context = logger.method('init', { octopus, requirements }, parent);
+        super.init(octopus, requirements, context);
+        logger.info('AntelopeAuthAnchor OK!', { w3oId: super.w3oId, octopus, requirements });
+    }
 
     // Module methods ------
     override snapshot(): any {
@@ -66,131 +79,158 @@ export class AntelopeAuthAnchor extends AntelopeAuthSupport {
         };
     }
 
-    getWharfkitFrom(auth: W3oAuthenticator, parent: LoggerContext): WharfkitInstance {
+    // Wharfkit support methods ------
+
+    // Method to get the wharfkit instance from the authenticator
+    getWharfkitFrom(auth: W3oAuthenticator, parent: W3oContext): WharfkitInstance {
         const context = logger.method('getWharfkitFrom', { auth }, parent);
         if (auth) {
-            const wharfkit = auth.get<WharfkitInstance>('wharfkit');
-            if (!wharfkit) {
-                context.error('No wharfkit found in auth');
-                throw new W3oError(W3oError.SESSION_MISSING_KEY, {'key': 'wharfkit', auth});
+            let wharfkit!: WharfkitInstance;
+            if (auth.network instanceof AntelopeNetwork) {
+                wharfkit = (auth.network as AntelopeNetwork).wharfkit;
+                logger.info('Wharfkit found in network', wharfkit);
+            } else {
+                context.error('No wharfkit found in network', { network: auth.network, auth });
+                throw new W3oError(W3oError.SESSION_NOT_FOUND, { auth });
             }
-            context.info('Wharfkit found', wharfkit);
             return wharfkit;
         }
-        context.error('No session found');
+        context.error('No wharfkit found in auth', { auth });
         throw new W3oError(W3oError.SESSION_NOT_FOUND, { auth });
     }
 
-    // Method to check if the authenticator is read-only
-    override isReadOnly(): boolean {
-        return false;
-    }
-    // Method to sign a transaction
-    override signTransaction(auth: W3oAuthenticator, trx: W3oTransaction, parent: LoggerContext): Observable<W3oTransactionResponse> {
-        const context = logger.method('signTransaction', { auth, trx, parent });
-        context.error('signTransaction() NOT IMPLEMENTED');
-        return new Observable<W3oTransactionResponse>();
-    }
-    // Abstract methods from W3oAuthSupport
-    override createAuthenticator(network: W3oNetwork, parent: LoggerContext): W3oAuthenticator {
-        const context = logger.method('createAuthenticator', undefined, parent);
-        const autenticator: W3oAuthenticator = super.createAuthenticator(network, context);
-        const wharfkit: WharfkitInstance = AntelopeWharfkit.wharfkit(
-            this.octopus.settings.appName,
-            network.settings as W3oAntelopeNetworkSettings,
-        )
-        console.log({
-            chainId: network.settings.chainId,
-            displayName: network.settings.displayName,
-            rpcUrl: network.settings.rpcUrl,
-        });
-
-        if (wharfkit) {
-            autenticator.set<WharfkitInstance>('wharfkit', wharfkit);
-            context.info('Authenticator created', { autenticator, wharfkit });
-        } else {
-            context.warn('Authenticator created but no wharfkit found', { autenticator });
+    // Metod to get the wharfkit instance from the networkName
+    getWharfkitFromNetworkName(networkName: W3oNetworkName, parent: W3oContext): WharfkitInstance {
+        const context = logger.method('getWharfkitFromNetworkName', { networkName }, parent);
+        const network = this.octopus.networks.getNetwork(networkName, context);
+        if (network instanceof AntelopeNetwork) {
+            return network.wharfkit;
         }
-
-        return autenticator;
+        context.error('No wharfkit found in network', { network });
+        throw new W3oError(W3oError.SESSION_NOT_FOUND, { network });
     }
 
-    private setWharfkitSession(authenticator: W3oAuthenticator, session: Session, network: W3oNetwork, parent: LoggerContext): string {
-        const context = logger.method('setWharfkitSession', { session, authenticator, network, parent });
+    private setWharfkitSession(authenticator: W3oAuthenticator, session: Session, parent: W3oContext): string {
+        const context = logger.method('setWharfkitSession', { session, authenticator, parent });
         const accountname = session.actor.toString();
-        context.info('accountname:', accountname);
-        // this.octopus.sessions.createCurrentSession(accountname, authenticator, network, context);
-        authenticator.set<Session>('wharfkit.session', session);
-        authenticator.set<string>('wharfkit.session.actor', accountname);
-        // green check icon followed by `Logged in as ${address}`
-        context.info(`✅Logged in as ${accountname}`);
+        authenticator.onSessionChange$.subscribe(() => {
+            if (!!authenticator.session) {
+                authenticator.session.storage.set<Session>('wharfkit.session', session);
+                logger.info(`✅Logged in as ${accountname}`);
+            }
+        });
         return accountname;
     }
 
-    // Method to log in to a specific network
-    override login(auth: W3oAuthenticator, networkName: W3oNetworkName, parent: LoggerContext): Observable<W3oAccount> {
-        const context = logger.method('login', { auth, networkName, parent });
-        return new Observable<W3oAccount>((observer) => {
+    public getWharfkitSession(authenticator: W3oAuthenticator, parent: W3oContext): Session {
+        const context = logger.method('getWharfkitSession', { authenticator, parent });
+        const session = authenticator.session.storage.get<Session>('wharfkit.session') as Session;
+        if (!session) {
+            context.error('No wharfkit session found in auth');
+            throw new W3oError(W3oError.SESSION_MISSING_KEY, { 'key': 'wharfkit.session', authenticator });
+        }
+        logger.info('Wharfkit session found', session);
+        return session;
+    }
+
+    // Authentication methods ------
+
+    /**
+     * Private helper that centralises the common login flow.
+     *
+     * @param auth           the authenticator
+     * @param networkName    the target network
+     * @param contextArgs    extra args to show in the initial log (e.g. { address })
+     * @param parent         parent execution context
+     * @param action         fn that invokes wharfkit.login/restoredSession
+     * @param initialLabel   label for logger.method()
+     * @param failMessage    used in error() when no session or promise rejects
+     */
+    private authenticate(
+        auth: W3oAuthenticator,
+        networkName: W3oNetworkName,
+        parent: W3oContext,
+        action: (wharfkit: WharfkitInstance, ctx: W3oContext) => Promise<Session | undefined>,
+        initialLabel: string,
+        failMessage: string
+    ): Observable<W3oAccount> {
+        return new Observable<W3oAccount>(observer => {
+            const context = logger.method(
+                initialLabel,
+                { auth, networkName },
+                parent
+            );
+
             try {
-                // First use wharfkit to login
-                const network = this.octopus.networks.getNetwork(networkName, context);
-                console.assert(!!network, 'Network not found', { networkName });
                 const wharfkit = this.getWharfkitFrom(auth, context);
-                context.log('wharfkit.login()', { wharfkit, network });
-                wharfkit.login(context).then((session) => {
-                    context.info('wharfkit.login() -> ', { session });
-                    if (!!session) {
-                        const address = this.setWharfkitSession(auth, session, network, context);
-                        const account = new AntelopeAccount(address, session, auth, context);
-                        context.info('wharfkit.login() -> account ', { account });
-                        observer.next(account as W3oAccount);
-                        observer.complete();
-                    } else {
-                        context.error('Login failed: no session found', { session });
-                        throw new W3oError(W3oError.SESSION_NOT_FOUND, { session });
-                    }
-                }).catch((error) => {
-                    context.error('Login failed', error);
-                });
+                const network = this.octopus.networks.getNetwork(networkName, context);
+                logger.log(`${initialLabel}():`, { wharfkit, network });
+
+                action(wharfkit, context)
+                    .then(session => {
+                        logger.info(`${initialLabel}() ->`, { session });
+                        if (session) {
+                            const address = this.setWharfkitSession(auth, session, context);
+                            const account = new AntelopeAccount(address, session, auth, context);
+                            observer.next(account as W3oAccount);
+                            observer.complete();
+                        } else {
+                            if (initialLabel === 'login') {
+                                context.error(failMessage, { session });
+                                throw new W3oError(W3oError.SESSION_NOT_FOUND, { session });
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        context.error(failMessage, error);
+                        observer.error(error);
+                    });
             } catch (error) {
                 context.error('ERROR:', error);
                 observer.error(error);
             }
         });
     }
-    // Method to automatically log in to a specific network
-    override autoLogin(auth: W3oAuthenticator, networkName: W3oNetworkName, address: W3oAddress, parent: LoggerContext): Observable<W3oAccount> {
-        const context = logger.method('autoLogin', { auth, networkName, address, parent });
-        return new Observable<W3oAccount>((observer) => {
-            try {
-                const wharfkit = this.getWharfkitFrom(auth, context);
-                const network = this.octopus.networks.getNetwork(networkName, context);
-                wharfkit.restoreSession().then((session) => {
-                    context.info('Login successful', session);
-                    if (!!session) {
-                        const address = this.setWharfkitSession(auth, session, network, context);
-                        const account = new AntelopeAccount(address, session, auth, context);
-                        observer.next(account as W3oAccount);
-                        observer.complete();
-                    } else {
-                        context.info('AutoLogin false');
-                    }
-                }).catch((error) => {
-                    context.error('Auto login failed', error);
-                });
-            } catch (error) {
-                context.error('ERROR:', error);
-                observer.error(error);
-            }
-        });
+
+    // Method to log in to a specific network.
+    override login(
+        auth: W3oAuthenticator,
+        networkName: W3oNetworkName,
+        parent: W3oContext
+    ): Observable<W3oAccount> {
+        return this.authenticate(
+            auth,
+            networkName,
+            parent,
+            (wharfkit, ctx) => wharfkit.login(ctx),
+            'login',
+            'Login failed'
+        );
     }
+
+    // Method to automatically restore a session for a specific network.
+    override autoLogin(
+        auth: W3oAuthenticator,
+        networkName: W3oNetworkName,
+        parent: W3oContext
+    ): Observable<W3oAccount> {
+        return this.authenticate(
+            auth,
+            networkName,
+            parent,
+            (wharfkit, ctx) => wharfkit.restoreSession(),
+            'autoLogin',
+            'Auto login failed'
+        );
+    }
+
     // Method to log out
-    override logout(auth: W3oAuthenticator, parent: LoggerContext): void {
+    override logout(auth: W3oAuthenticator, parent: W3oContext): void {
         const context = logger.method('logout', { auth }, parent);
         try {
             const wharfkit = this.getWharfkitFrom(auth, context);
             wharfkit.logout().then(() => {
-                context.info('Logout successful', auth);
+                logger.info('Logout successful', auth);
             }).catch((error) => {
                 context.error('Logout failed', error);
             });
@@ -200,5 +240,29 @@ export class AntelopeAuthAnchor extends AntelopeAuthSupport {
         }
 
     }
+
+    // Method to sign a transaction
+    override signTransaction(auth: W3oAuthenticator, trx: W3oTransaction, parent: W3oContext): Observable<AntelopeTransactionResponse> {
+        const context = logger.method('signTransaction', { auth, trx, parent });
+        const session = this.getWharfkitSession(auth, context);
+        const wharfkit = this.getWharfkitFrom(auth, context);
+        const transaction = trx as AntelopeTransaction;
+        return new Observable<AntelopeTransactionResponse>((observer) => {
+            session.transact(transaction).then((response) => {
+                logger.info('Transaction signed successfully', response);
+                const txId = response.response?.['transaction_id'] as string || 'Unknown TX';
+                const transactionResponse = new AntelopeTransactionResponse(txId);
+                transactionResponse.wait().subscribe((receipt) => {
+                    logger.info('Transaction receipt', receipt);
+                    observer.next(transactionResponse);
+                    observer.complete();
+                });
+            }).catch((error) => {
+                context.error('Transaction signing failed', error);
+                observer.error(error);
+            });
+        });
+    }
+
 
 }

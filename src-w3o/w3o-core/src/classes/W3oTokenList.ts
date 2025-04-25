@@ -1,3 +1,5 @@
+// w3o-core/src/classes/W3oTokenList.ts
+
 import { BehaviorSubject, Observable } from "rxjs";
 import { W3oToken } from "./W3oToken";
 import { W3oHttpClient } from "../types";

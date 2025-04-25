@@ -1,54 +1,87 @@
-import { Observable, Subject } from 'rxjs';
-import { W3oAddress, W3oSessionInstance } from '../types';
+// w3o-core/src/classes/W3oSession.ts
 
-import { Logger, LoggerContext } from './Logger';
+import { Observable, Subject } from 'rxjs';
+import { W3oAddress, W3oSessionInstance, W3oTransaction, W3oTransactionReceipt } from '../types';
+
+import { W3oContextFactory, W3oContext } from './W3oContext';
 import { W3oAuthenticator } from './W3oAuthenticator';
 import { W3oNetwork } from './W3oNetwork';
+import { W3oStorage } from './W3oStorage';
+import { W3oTransactionResponse } from './W3oTransactionResponse';
 
-const logger = new Logger('W3oSession');
+const logger = new W3oContextFactory('W3oSession');
 
-// Representa una sesión, incluyendo métodos para obtener la cuenta y la red asociadas, almacenar y recuperar datos, y obtener un snapshot del estado interno
+/**
+ * Represents a session, including methods to access the associated account and network,
+ * store and retrieve data, and take a snapshot of the internal state.
+ */
 export class W3oSession {
 
-    // propiedad estática que provee el separador que se usará para construir el ID de la sesión
+    /**
+     * Static property that provides the separator used to build the session ID
+     */
     public static readonly ID_SEPARATOR = '--';
 
-    // storage for user custom properties for the session
-    // private __storage: {[key in string]: any} = {};
-    // identifier for the session
-    private __id: string = '';
+    /**
+     * Subject to emit and complete when logout is triggered
+     */
     onLogout$: Subject<any> = new Subject<any>();
+
+    /**
+     * Custom storage for session-scoped user data
+     */
+    public readonly storage: W3oStorage = new W3oStorage();
+
+    /**
+     * Internal identifier for the session
+     */
+    private __id: string = '';
 
     constructor(
         public readonly manager: W3oSessionInstance,
         public readonly address: W3oAddress,
         public readonly authenticator: W3oAuthenticator,
         public readonly network: W3oNetwork,
-        parent: LoggerContext,
+        parent: W3oContext,
     ) {
         logger.method('constructor', {address, authenticator, network}, parent);
         this.__id = `${address}${W3oSession.ID_SEPARATOR}${authenticator.name}${W3oSession.ID_SEPARATOR}${network.name}`;
     }
 
-    // Getter para obtener el ID de la sesión
+    /**
+     * Getter to retrieve the session ID
+     */
     get id(): string {
         return this.__id;
     }
 
-    logout(parent: LoggerContext) {
-        const context = logger.method('logout', undefined, parent);
+    /**
+     * Performs logout: triggers authenticator logout, deletes session from manager, and emits logout event
+     */
+    logout(parent: W3oContext) {
+        const context = logger.method('logout', parent);
         this.authenticator.logout(context);
         this.manager.deleteSession(this.id, context);
-        // emit logout event
         this.onLogout$.next(null);
         this.onLogout$.complete();
     }
 
-    // Método para tomar una instantánea del estado de la sesión
+    /**
+     * Signs a transaction using the authenticator support
+     */
+    signTransaction(transaction: W3oTransaction, parent: W3oContext): Observable<W3oTransactionResponse> {
+        const context = logger.method('transact', {transaction}, parent);
+        return this.authenticator.support.signTransaction(this.authenticator, transaction, context);
+    }
+
+    /**
+     * Returns a snapshot of the session's current internal state
+     */
     snapshot(): any {
         return {
             authenticator: this.authenticator.snapshot(),
             network: this.network.snapshot(),
+            storage: this.storage.snapshot(),
         };
     }
 }

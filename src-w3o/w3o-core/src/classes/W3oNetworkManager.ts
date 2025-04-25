@@ -1,4 +1,5 @@
-// w3o-core\src\classes\W3oNetworkManager.ts
+// w3o-core/src/classes/W3oNetworkManager.ts
+
 import { BehaviorSubject } from 'rxjs';
 
 import {
@@ -8,15 +9,15 @@ import {
     W3oInstance,
 } from '../types';
 
-import { Logger, LoggerContext } from './Logger';
+import { W3oContextFactory, W3oContext } from './W3oContext';
 import { W3oNetwork } from './W3oNetwork';
 import { W3oError } from './W3oError';
+import { W3oManager } from './W3oManager';
 
-const logger = new Logger('W3oNetworkManager');
+const logger = new W3oContextFactory('W3oNetworkManager');
 
 // Representa un manejador de redes, incluyendo métodos para registrar, obtener y listar redes, y actualizar el estado
-export class W3oNetworkManager implements W3oNetworkInstance {
-    private __initialized = false;
+export class W3oNetworkManager extends W3oManager implements W3oNetworkInstance {
     private __networks: W3oNetwork[] = [];
 
     public onNetworkChange$: BehaviorSubject<W3oNetworkName | null> = new BehaviorSubject<string | null>(null);
@@ -25,9 +26,10 @@ export class W3oNetworkManager implements W3oNetworkInstance {
 
     constructor(
         settings: W3oGlobalSettings,
-        parent: LoggerContext
+        parent: W3oContext
     ) {
-        logger.method('constructor', {settings, octopus: this.octopus }, parent);
+        logger.method('constructor', {settings}, parent);
+        super('W3oNetworkManager');
     }
 
     // Getter para obtener el nombre de la red actual
@@ -36,12 +38,12 @@ export class W3oNetworkManager implements W3oNetworkInstance {
     }
 
     // Getter para obtener la red actual
-    get current() {
+    get current(): W3oNetwork {
         const name = this.currentNetworkName;
         if (!name) {
             throw new W3oError(W3oError.NETWORK_NOT_FOUND, { name, snapshot: this.snapshot() });
         }
-        return this.getNetwork(name, Logger.current);
+        return this.getNetwork(name, W3oContextFactory.current!);
     }
 
     // Getter para obtener la lista de redes
@@ -52,30 +54,28 @@ export class W3oNetworkManager implements W3oNetworkInstance {
     // Método para inicializar el manejador de redes
     init(
         octopus: W3oInstance,
-        parent: LoggerContext
+        parent: W3oContext
     ): void {
         const context = logger.method('init', { octopus }, parent);
         this.octopus = octopus;
-        if (this.__initialized) {
+        if (this.__initCalled) {
             throw new W3oError(W3oError.ALREADY_INITIALIZED, { name: 'W3oNetworkManager', message: 'Network manager already initialized' });
         }
-        // this.__networks.forEach(network => {
-        //     network.init(octopus, context);
-        // });
-        this.__initialized = true;
+        this.__initCalled = true;
+        this.__initialized$.next(true);
     }
 
     // Método para registrar una red
-    addNetwork(network: W3oNetwork, parent: LoggerContext): void {
+    addNetwork(network: W3oNetwork, parent: W3oContext): void {
         logger.method('addNetwork', { network }, parent);
-        if (this.__initialized) {
+        if (this.__initCalled) {
             throw new W3oError(W3oError.ALREADY_INITIALIZED, { name: 'W3oNetworkManager', message: 'Network manager already initialized' });
         }
         this.__networks.push(network);
     }
 
     // Método para obtener una red por su nombre
-    getNetwork(name: W3oNetworkName, parent: LoggerContext): W3oNetwork {
+    getNetwork(name: W3oNetworkName, parent: W3oContext): W3oNetwork {
         logger.method('getNetwork', { name }, parent);
         const network = this.__networks.find(network => network.settings.name === name);
         if (!network) {
@@ -85,7 +85,7 @@ export class W3oNetworkManager implements W3oNetworkInstance {
     }
 
     // Método para establecer la red actual
-    setCurrentNetwork(name: W3oNetworkName, parent: LoggerContext): void {
+    setCurrentNetwork(name: W3oNetworkName, parent: W3oContext): void {
         const context = logger.method('setCurrentNetwork', { name }, parent);
         const net =  this.getNetwork(name, context) as W3oNetwork;
         if (!net) {

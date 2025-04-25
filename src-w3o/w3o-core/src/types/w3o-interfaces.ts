@@ -1,8 +1,10 @@
+// w3o-code/src/types/w3o-interfaces.ts
+
 import { BehaviorSubject, Observable } from "rxjs";
 import {
-    LoggerContext,
     W3oAuthenticator,
     W3oAuthSupport,
+    W3oContext,
     W3oModule,
     W3oNetwork,
     W3oSession,
@@ -86,30 +88,34 @@ export interface W3oInstance {
     auth: W3oAuthInstance;
     modules: W3oModuleInstance;
     getSupportFor(type: string): W3oNetworkSupportSettings;
+    initialized: boolean;
+    whenReady: Observable<void>;
 }
 
 export interface W3oSessionInstance {
     snapshot(): unknown;
-    loadSessions(context: LoggerContext): Observable<void>;
+    loadSessions(context: W3oContext): Observable<void>;
     current: W3oSession | null;
-    createCurrentSession(address: W3oAddress, authenticator: W3oAuthenticator, network: W3oNetwork, parent: LoggerContext): W3oSession;
-    deleteSession(id: string, parent: LoggerContext): void;
-    createSession(address: W3oAddress, authenticator: W3oAuthenticator, network: W3oNetwork, parent: LoggerContext): W3oSession
+    createCurrentSession(address: W3oAddress, authenticator: W3oAuthenticator, network: W3oNetwork, parent: W3oContext): W3oSession;
+    deleteSession(id: string, parent: W3oContext): void;
+    createSession(address: W3oAddress, authenticator: W3oAuthenticator, network: W3oNetwork, parent: W3oContext): W3oSession
 }
 
 export interface W3oNetworkInstance {
-    getNetwork(name: W3oNetworkName, parent: LoggerContext): W3oNetwork
-    onNetworkChange$: BehaviorSubject<W3oNetworkName | null>
+    getNetwork(name: W3oNetworkName, parent: W3oContext): W3oNetwork
+    onNetworkChange$: Observable<W3oNetworkName | null>
+    currentNetworkName: string | null;
+    current: W3oNetwork;
 }
 
 export interface W3oAuthInstance {
-    createAuthenticator(name: W3oAuthSupportName, network: W3oNetwork, parent: LoggerContext): W3oAuthenticator;
+    createAuthenticator(name: W3oAuthSupportName, network: W3oNetwork, parent: W3oContext): W3oAuthenticator;
 }
 
 export interface W3oModuleInstance {
-    registerModule(module: W3oModule, parent: LoggerContext): void;
-    getModule<T extends W3oModule = W3oModule>(w3oId: string, parent: LoggerContext): T | undefined;
-    getModules(parent: LoggerContext): W3oModule[];
+    registerModule(module: W3oModule, parent: W3oContext): void;
+    getModule<T extends W3oModule = W3oModule>(w3oId: string, parent: W3oContext): T | undefined;
+    getModules(parent: W3oContext): W3oModule[];
 }
 
 // Transfer status ---------------------------------------------------------------------------------------
@@ -129,7 +135,7 @@ export interface W3oTransferSummary {
 
 export interface W3oBalance {
     amount: {
-        raw: string;
+        value: number;
         formatted: string;
     };
     token: W3oToken;

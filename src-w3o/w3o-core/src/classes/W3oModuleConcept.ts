@@ -1,17 +1,16 @@
-import {
-    BehaviorSubject
-} from 'rxjs';
-import { Logger, LoggerContext } from './Logger';
+// w3o-core/src/classes/W3oModuleConcept.ts
+
+import { W3oContextFactory, W3oContext } from './W3oContext';
 import { W3oModule } from './W3oModule';
 
-const logger = new Logger('W3oModuleConcept');
+const logger = new W3oContextFactory('W3oModuleConcept');
 
 // Clase abstracta que representa un módulo (authenticador, network o servicio), su ID ()
 export class W3oModuleConcept<T> extends W3oModule {
     constructor(
         private readonly moduleId: {v: string, n: string, r: string[]},
         public readonly data: T,
-        parent: LoggerContext,
+        parent: W3oContext,
     ) {
         const context = logger.method('constructor', parent);
         super(context);

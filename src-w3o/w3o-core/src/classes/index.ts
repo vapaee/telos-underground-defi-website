@@ -1,11 +1,13 @@
-export * from './Logger';
 
 // Basics
+export * from './W3oStorage';
+export * from './W3oContext';
 export * from './W3oError';
 export * from './W3oTransactionResponse';
 export * from './W3oContract';
 export * from './W3oModule';
 export * from './W3oModuleConcept';
+export * from './W3oManager';
 
 // Authentication
 export * from './W3oAuthenticator';

@@ -1,3 +1,5 @@
+// w3o-code/src/types/w3o-types.ts
+
 // Representa el tipo de red en la que opera Web3 Octopus
 export type W3oNetworkType = 'ethereum' | 'antelope' | 'solana';
 

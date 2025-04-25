@@ -1,3 +1,5 @@
+// w3o-core/src/classes/W3oToken.ts
+
 import { W3oContract } from "./W3oContract";
 
 // Representa un token, incluyendo métodos para obtener información del token y su contrato asociado

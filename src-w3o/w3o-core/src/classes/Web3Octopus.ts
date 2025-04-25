@@ -1,6 +1,6 @@
 // w3o-core/src/classes/Web3Octopus.ts
 
-import { BehaviorSubject, filter } from 'rxjs';
+import { BehaviorSubject, combineLatest, filter, map, Observable } from 'rxjs';
 import {
     W3oGlobalSettings,
     W3oInstance,
@@ -8,7 +8,7 @@ import {
     W3oNetworkSupportSettings,
 } from '../types';
 
-import { Logger, LoggerContext } from './Logger';
+import { W3oContextFactory, W3oContext } from './W3oContext';
 import { W3oAuthManager } from './W3oAuthManager';
 import { W3oService } from './W3oService';
 import { W3oNetworkManager } from './W3oNetworkManager';
@@ -17,7 +17,7 @@ import { W3oModuleManager } from './W3oModuleManager';
 import { W3oError } from './W3oError';
 import { W3oModuleConcept } from './W3oModuleConcept';
 
-const logger = new Logger('Web3Octopus');
+const logger = new W3oContextFactory('Web3Octopus');
 
 const defaultSettings: W3oGlobalSettings = {
     appName: 'w3o-app',
@@ -32,8 +32,8 @@ interface WithSnapshot {
 // Main singleton class that acts as the entry point, includes methods to add network support, register modules, and initialize the state
 export class Web3Octopus<Tw3o extends W3oIServices & WithSnapshot> implements W3oInstance {
 
-    private __initialized = false;
-    public onInitialized$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(this.__initialized);
+    private __initCalled = false;
+    public onInitialized$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(this.__initCalled);
     public onManagersReady$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
 
     private __authCtrl: W3oAuthManager | null = null;
@@ -55,7 +55,7 @@ export class Web3Octopus<Tw3o extends W3oIServices & WithSnapshot> implements W3
         return Web3Octopus.__instance;
     }
 
-    constructor(parent?: LoggerContext) {
+    constructor(parent?: W3oContext) {
         logger.method('constructor', parent);
         Web3Octopus.__instance = this;
     }
@@ -74,6 +74,10 @@ export class Web3Octopus<Tw3o extends W3oIServices & WithSnapshot> implements W3
             throw new W3oError(W3oError.NETWORK_MANAGER_NOT_CREATED);
         }
         return this.__networkCtrl;
+    }
+
+    get initialized(): boolean {
+        return this.__initCalled;
     }
 
     // Getter to obtain the auth manager
@@ -108,6 +112,15 @@ export class Web3Octopus<Tw3o extends W3oIServices & WithSnapshot> implements W3
         return this.__settings;
     }
 
+    get whenReady(): Observable<void> {
+        return this.onInitialized$.pipe(
+            filter((initialized) => initialized),
+            map(() => {
+                return;
+            })
+        );
+    }
+
     getSupportFor(type: string): W3oNetworkSupportSettings {
         const context = logger.method('getSupportFor', {type});
         if (!this.__supportFor[type]) {
@@ -117,9 +130,9 @@ export class Web3Octopus<Tw3o extends W3oIServices & WithSnapshot> implements W3
     }
 
     // Method to add network support
-    addNetworkSupport(support: W3oNetworkSupportSettings, parent?: LoggerContext): void {
+    addNetworkSupport(support: W3oNetworkSupportSettings, parent?: W3oContext): void {
         const context = logger.method('addNetworkSupport', {support}, parent);
-        if (this.__initialized) {
+        if (this.__initCalled) {
             throw new W3oError(W3oError.ALREADY_INITIALIZED, { name: 'Web3Octopus', message: 'Network support can only be added before initialization' });
         }
 
@@ -130,7 +143,7 @@ export class Web3Octopus<Tw3o extends W3oIServices & WithSnapshot> implements W3
         ).subscribe(() => {
             console.assert(!!this.networks, context.indent + 'Network manager not created');
             console.assert(!!this.auth, context.indent + 'Auth manager not created');
-            context.log('processing support', support.type, 'with requirements', support.networks, support.auth, { support });
+            logger.log('processing support', support.type, 'with requirements', support.networks, support.auth, { support });
 
             // Add support for the network
             for (const network of support.networks) {
@@ -178,20 +191,19 @@ export class Web3Octopus<Tw3o extends W3oIServices & WithSnapshot> implements W3
         });
     }
 
-    init(settings: W3oGlobalSettings = defaultSettings, parent?: LoggerContext): void {
+    init(settings: W3oGlobalSettings = defaultSettings, parent?: W3oContext): void {
         const context = logger.method('init', parent);
-        if (this.__initialized) {
+        if (this.__initCalled) {
             throw new W3oError(W3oError.ALREADY_INITIALIZED, { name: 'Web3Octopus', message: 'Web3Octopus can only be initialized once' });
         }
         const octopus = this;
         this.__settings = settings;
-        this.__initialized = true;
         this.__networkCtrl = new W3oNetworkManager(settings, context);
         this.__sessionCtrl = new W3oSessionManager(settings, context);
         this.__authCtrl = new W3oAuthManager(settings, context);
         this.__moduleCtrl = new W3oModuleManager(settings, context);
         this.__serviceCtrl = this.createServiceCustomInstance(context);
-        context.log(`✅ Web3Octopus managers ready!!`);
+        logger.log(`✅ Web3Octopus managers ready!!`);
         this.onManagersReady$.next(true);
 
         // Initialize the managers
@@ -200,32 +212,46 @@ export class Web3Octopus<Tw3o extends W3oIServices & WithSnapshot> implements W3
         this.sessions.init(octopus, context);
         this.networks.init(octopus, context);
         // imprimir un ícono de un check verde seguido del texto: "Web3Octopus initialized"
-        context.log(`✅ Web3Octopus initialized successfully!!`);
-        this.onInitialized$.next(this.__initialized);
+        logger.log(`✅ Web3Octopus initialized successfully!!`);
+        // this.onInitialized$.next(this.__initCalled);
+
+        // Octopus is only initialized when all managers are initialized
+        combineLatest([
+            this.modules.whenReady,
+            this.auth.whenReady,
+            this.sessions.whenReady,
+            this.networks.whenReady,
+        ]).pipe(
+            map(() => {
+                this.__initCalled = true;
+                this.onInitialized$.next(this.__initCalled);
+                logger.log('Web3Octopus is ready!!', { octopus });
+            })
+        ).subscribe(() => {
+            logger.log('Web3Octopus is ready!!', { octopus });
+        });
     }
 
     // Method to create services
-    private createServiceCustomInstance(parent?: LoggerContext): Tw3o {
-        const context = logger.method('createServiceCustomInstance', undefined, parent);
+    private createServiceCustomInstance(parent?: W3oContext): Tw3o {
+        const context = logger.method('createServiceCustomInstance', parent);
 
         // Create the services object
         const servicesObject: Tw3o = { snapshot: () => ({}) } as Tw3o;
         for (const service of this.__services) {
-            context.log('processing service', service.path);
+            logger.log('processing service', service.path);
             const path = service.path.split('.');
             let currentLevel = servicesObject as unknown as { [part: string]: W3oService };
 
             for (let i = 0; i < path.length; i++) {
                 const part = path[i];
-                if (currentLevel[part] instanceof W3oService) {
-                    if (i === path.length - 1) {
-                        currentLevel[part] = service;
-                    } else {
-                        if (!currentLevel[part]) {
-                            currentLevel[part] = {} as W3oService;
-                        }
-                        currentLevel = currentLevel[part] as unknown as { [part: string]: W3oService };
+                if (i === path.length - 1) {
+                    currentLevel[part] = service;
+                } else {
+                    if (!currentLevel[part]) {
+                        currentLevel[part] = {} as W3oService;
                     }
+                    currentLevel = currentLevel[part] as unknown as { [part: string]: W3oService };
                 }
             }
         }
@@ -247,19 +273,19 @@ export class Web3Octopus<Tw3o extends W3oIServices & WithSnapshot> implements W3
             return snapshot;
         };
 
-        context.log('services created successfully', {services: servicesObject});
+        logger.log('services created successfully', {services: servicesObject});
         return servicesObject as Tw3o;
     }
 
     // Method to register services
-    registerServices(services: W3oService[], parent?: LoggerContext): void {
+    registerServices(services: W3oService[], parent?: W3oContext): void {
         const context = logger.method('registerServices', {services}, parent);
         this.__services.push(...services);
     }
 
     // Method to take a snapshot of the framework state
     snapshot(): any {
-        if (!this.__initialized) {
+        if (!this.__initCalled) {
             throw new W3oError(W3oError.NOT_INITIALIZED, { message: 'snapshots can only be taken after initialization' });
         }
         return {

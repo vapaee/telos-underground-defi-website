@@ -1,28 +1,21 @@
+// w3o-antelope/src/classes/AntelopeAuthSupport.ts
+
 import {
-    Logger,
-    LoggerContext,
-    W3oAccount,
-    W3oAddress,
-    W3oAuthenticator,
+    W3oContext,
+    W3oContextFactory,
     W3oAuthSupport,
     W3oAuthSupportName,
-    W3oNetwork,
-    W3oNetworkName,
     W3oNetworkType,
-    W3oTransaction,
-    W3oTransactionResponse,
 } from "@vapaee/w3o-core";
 
-import { Observable } from "rxjs";
-
-const logger = new Logger('AntelopeAuthSupport');
+const logger = new W3oContextFactory('AntelopeAuthSupport');
 
 export abstract class AntelopeAuthSupport extends W3oAuthSupport {
     constructor(
         name: W3oAuthSupportName,
-        parent: LoggerContext
+        parent: W3oContext
     ) {
-        const context = logger.method('constructor', undefined, parent);
+        const context = logger.method('constructor', parent);
         super(name, 'antelope' as W3oNetworkType, context);
     }
 }

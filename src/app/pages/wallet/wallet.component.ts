@@ -39,7 +39,7 @@ export class WalletComponent implements OnInit, OnDestroy {
     }
 
     get actor(): string | undefined {
-        return this.sessionService.currentSession?.actor.toString();
+        return this.sessionService.current?.address || undefined;
     }
 
     ngOnInit() {

@@ -1,4 +1,4 @@
-// src-w3o/w3o-antelope/src/classes/AntelopeWharfkit.ts
+// w3o-antelope/src/classes/AntelopeWharfkit.ts
 
 import { APIClient } from '@wharfkit/antelope';
 import { AccountKit } from '@wharfkit/account';
@@ -7,9 +7,9 @@ import { WebRenderer } from '@wharfkit/web-renderer';
 import { WalletPluginAnchor } from '@wharfkit/wallet-plugin-anchor';
 import { WalletPluginCleos } from '@wharfkit/wallet-plugin-cleos';
 import { W3oAntelopeNetworkSettings } from '../types';
-import { Logger, LoggerContext } from '@vapaee/w3o-core';
+import { W3oContextFactory, W3oContext } from '@vapaee/w3o-core';
 
-const logger = new Logger('AntelopeAuthAnchor');
+const logger = new W3oContextFactory('AntelopeAuthAnchor');
 
 export class WharfkitInstance {
     constructor(
@@ -34,12 +34,12 @@ export class WharfkitInstance {
     /**
      * Initiates login flow and stores the session.
      */
-    public async login(parent: LoggerContext): Promise<Session> {
+    public async login(parent: W3oContext): Promise<Session> {
         const context = logger.method('login', {}, parent);
-        context.info('Logging in...');
+        logger.info('Logging in...');
         const { session } = await this.sessionKit.login();
         this._currentSession = session;
-        context.info('Login successful', { session });
+        logger.info('Login successful', { session });
         return session;
     }
 

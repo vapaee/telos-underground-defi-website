@@ -1,3 +1,5 @@
+// w3o-core/src/classes/W3oTransactionResponse.ts
+
 import { Observable } from 'rxjs';
 import { W3oTransactionReceipt } from '../types';
 

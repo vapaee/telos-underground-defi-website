@@ -4,10 +4,10 @@ import { Observable } from 'rxjs';
 import { Session } from '@wharfkit/session';
 import { LocalStorageService } from './local-storage.service';
 import { Web3OctopusService } from './web3-octopus.service';
-import { Logger, W3oSession } from '@vapaee/w3o-core';
+import { W3oContextFactory, W3oSession } from '@vapaee/w3o-core';
 
 
-const logger = new Logger('SessionService');
+const logger = new W3oContextFactory('SessionService');
 
 @Injectable({
     providedIn: 'root',
@@ -28,7 +28,7 @@ export class SessionService {
             if (session) {
                 user = session.address.toString();
             }
-            context.debug('Session changed:', { user, session });
+            logger.debug('Session changed:', { user, session });
             setTimeout(() => {
                 this.localStorageService.restoreUserPreferences(user);
             }, 10);
@@ -36,13 +36,13 @@ export class SessionService {
     }
 
     // Expose current session as a getter
-    get currentSession(): Session | null {
-        return this.w3o.octopus.sessions.current$.value?.authenticator.get<Session>('wharfkit.session') ?? null;
-    }
+    // get currentSession(): Session | null {
+    //     return this.w3o.octopus.sessions.current$.value?.authenticator.get<Session>('wharfkit.session') ?? null;
+    // }
 
     // Returns the current w3oSession
     get current(): W3oSession | null {
-        return this.w3o.octopus.sessions.current$.value;
+        return this.w3o.octopus.sessions.current;
     }
 
     // Login method

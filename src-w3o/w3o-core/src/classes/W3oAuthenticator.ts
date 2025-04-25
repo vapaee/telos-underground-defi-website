@@ -8,7 +8,7 @@ import {
     W3oTransaction
 } from '../types';
 
-import { Logger, LoggerContext } from './Logger';
+import { W3oContextFactory, W3oContext } from './W3oContext';
 import { W3oAccount } from './W3oAccount';
 import { W3oAuthSupport } from './W3oAuthSupport';
 import { W3oError } from './W3oError';
@@ -16,7 +16,7 @@ import { W3oTransactionResponse } from './W3oTransactionResponse';
 import { W3oSession } from './W3oSession';
 import { W3oNetwork } from './W3oNetwork';
 
-const logger = new Logger('W3oAuthenticator');
+const logger = new W3oContextFactory('W3oAuthenticator');
 
 
 export class W3oAuthenticator {
@@ -29,7 +29,7 @@ export class W3oAuthenticator {
     constructor(
         public readonly support: W3oAuthSupport,
         public readonly network: W3oNetwork,
-        parent: LoggerContext,
+        parent: W3oContext,
     ) {
         logger.method('constructor', {support}, parent);
     }
@@ -66,13 +66,13 @@ export class W3oAuthenticator {
     }
 
     // Method to set the session ID (throws exception if the session is already set)
-    private setSessionId(sessionId: string, parent: LoggerContext): void {
+    private setSessionId(sessionId: string, parent: W3oContext): void {
         logger.method('setSessionId', {sessionId}, parent);
         this.onSessionChange$.next(sessionId);
     }
 
     // Method to set the session
-    setSession(session: W3oSession, parent: LoggerContext): void {
+    setSession(session: W3oSession, parent: W3oContext): void {
         const context = logger.method('setSession', { session: session.id}, parent);
         if (!!this.__session) {
             throw new W3oError(W3oError.SESSION_ALREADY_SET, {authenticator: this, session});
@@ -102,7 +102,7 @@ export class W3oAuthenticator {
     }
 
     // Method to sign a transaction
-    signTransaction(trx: W3oTransaction, parent: LoggerContext): Observable<W3oTransactionResponse> {
+    signTransaction(trx: W3oTransaction, parent: W3oContext): Observable<W3oTransactionResponse> {
         const context = logger.method('signTransaction', {trx}, parent);
         if (this.isReadOnly()) {
             throw new W3oError(W3oError.READ_ONLY_AUTHENTICATOR, {authenticator: this});
@@ -123,14 +123,14 @@ export class W3oAuthenticator {
     }
 
     // Method to log in to a specific network
-    login(networkName: W3oNetworkName, parent: LoggerContext): Observable<W3oAccount> {
+    login(networkName: W3oNetworkName, parent: W3oContext): Observable<W3oAccount> {
         const context = logger.method('login', {networkName}, parent);
         return new Observable<W3oAccount>(subscriber => {
             try {
                 const accountObservable = this.support.login(this, networkName, context);
                 accountObservable.subscribe({
                     next: (account) => {
-                        context.log('this.support.login.subscribe() -> result', {account: account.getAddress()});
+                        logger.log('this.support.login.subscribe() -> result', {account: account.getAddress()});
                         this.__account = account;
                         subscriber.next(account);
                     },
@@ -145,11 +145,11 @@ export class W3oAuthenticator {
     }
 
     // Method to automatically log in to a specific network
-    autoLogin(network: W3oNetworkName, address: W3oAddress, parent: LoggerContext): Observable<W3oAccount> {
-        const context = logger.method('autoLogin', {network, address}, parent);
+    autoLogin(network: W3oNetworkName, parent: W3oContext): Observable<W3oAccount> {
+        const context = logger.method('autoLogin', {network}, parent);
         return new Observable<W3oAccount>(subscriber => {
             try {
-                const accountObservable = this.support.autoLogin(this, network, address, context);
+                const accountObservable = this.support.autoLogin(this, network, context);
                 accountObservable.subscribe({
                     next: (account) => {
                         this.__account = account;
@@ -166,8 +166,8 @@ export class W3oAuthenticator {
     }
 
     // Method to log out
-    logout(parent: LoggerContext): void {
-        const context = logger.method('logout', undefined, parent);
+    logout(parent: W3oContext): void {
+        const context = logger.method('logout', parent);
         try {
             this.support.logout(this, context);
             this.octopus.sessions.deleteSession(this.sessionId, context);
@@ -178,46 +178,15 @@ export class W3oAuthenticator {
         }
     }
 
-
-    // ------  Attached Data (for storing user custom properties) ------
-    private __storage: {[key in string]: any} = {};
-
-    // Método para almacenar un valor en la sesión
-    set<TData>(key: string, value: TData): void {
-        this.__storage[key] = value;
-    }
-
-    // Método para recuperar un valor de la sesión
-    get<TData>(key: string): TData {
-        if (this.__storage[key] === undefined) {
-            throw new W3oError(W3oError.KEY_NOT_FOUND, {key, authenticator: this});
-        }
-        return this.__storage[key] as TData;
-    }
-
-    // Método para eliminar un valor de la sesión
-    remove(key: string): void {
-        delete this.__storage[key];
-    }
-
-    // Metodo para obtener las claves almacenadas en la sesión
-    keys(): string[] {
-        return Object.keys(this.__storage);
-    }
-
-    // Method to clear the storage
-    clearStorage(): void {
-        this.__storage = {};
-    }
-
-    // Method to take a snapshot of the authenticator's state
+    // Getter to obtain a snapshot of the authenticator's state
     snapshot(): any {
         return {
-            account: this.__account ? this.__account.snapshot() : null,
+            _class: 'W3oAuthenticator',
+            account: this.__account?.snapshot(),
+            session: this.__session?.snapshot(),
             support: this.support.snapshot(),
-            __storage: { ...this.__storage }
+            network: this.network.snapshot(),
         };
     }
-
 
 }
