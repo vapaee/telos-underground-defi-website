@@ -2,32 +2,10 @@ import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { NavBarComponent } from '@app/components/nav-bar/nav-bar.component';
 import { SideMenuMobileComponent } from '@app/components/side-menu-mobile/side-menu-mobile.component';
-import { RedirectService } from '@app/services/redirect.services';
+import { RedirectService } from '@app/services/redirect.service';
 import { SharedModule } from '@app/shared/shared.module';
 import { TranslateService } from '@ngx-translate/core';
-
-// import the main class from the core
-import {
-    Web3Octopus,                          // the main class
-    W3oIServices,                         // interface that includes the snapshot function
-} from '@vapaee/w3o-core';
-
-// import the classes to support Antelope (EOSIO) networks
-import {
-    AntelopeNetwork,                      // extends W3oNetwork
-    AntelopeTokensService,                // extends W3oService
-    AntelopeBalancesService,              // extends W3oService
-    AntelopeAnchorAuth,                   // extends W3oAuthenticator
-} from '@vapaee/w3o-antelope';
-
-// import the configuration for each of the four Telos networks
-import {
-    TelosEvmConfigJSON,                   // contains the mainnet evm network configuration JSON
-    TelosEvmTestnetConfigJSON,            // contains the testnet evm network configuration JSON
-    TelosZeroConfigJSON,                  // contains the mainnet native network configuration JSON
-    TelosZeroTestnetConfigJSON,           // contains the testnet native network configuration JSON
-} from '@vapaee/w3o-telos';
-
+import { Web3OctopusService } from './services/web3-octopus.service';
 
 @Component({
     selector: 'app-root',
@@ -54,8 +32,11 @@ export class AppComponent {
     constructor(
         private redirectService: RedirectService, //Automatically sets redirection rules
         private translate: TranslateService,
+        private octopus: Web3OctopusService,
     ) {
         // Set default language
         this.translate.use('en');
+
+
     }
 }
