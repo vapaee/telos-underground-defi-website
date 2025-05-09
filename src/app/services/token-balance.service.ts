@@ -1,8 +1,12 @@
+// src/app/services/session-kit.service.ts
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, combineLatest } from 'rxjs';
 import { SessionService } from '@app/services/session-kit.service';
 import { TokenListService } from '@app/services/token-list.service';
-import { Token, Balance } from 'src/types';
+import { Token, Balance } from '@app/types';
+import { W3oContextFactory } from '@vapaee/w3o-core';
+
+const logger = new W3oContextFactory('TokenBalanceService');
 
 @Injectable({
     providedIn: 'root'
@@ -14,9 +18,9 @@ export class TokenBalanceService {
         private sessionService: SessionService,
         private tokenListService: TokenListService
     ) {
-        combineLatest([this.sessionService.session$, this.tokenListService.getTokens()])
+        combineLatest([this.sessionService.session$, this.tokenListService.tokens$])
             .subscribe(([session, tokens]) => {
-                if (session?.actor) {
+                if (!!session?.address) {
                     this.updateAllBalances();
                 } else {
                     this.balances$.next([]); // Clear balances on logout
@@ -58,7 +62,7 @@ export class TokenBalanceService {
                 const balance = await this.fetchSingleBalance(token);
                 const currentBalance = this.balances$.getValue().find(b => b.token.symbol === token.symbol);
 
-                if (balance.amount.raw !== currentBalance?.amount.raw) {
+                if (balance.amount.value !== currentBalance?.amount.value) {
                     this.addSingleBalanceToState(balance);
                     resolve(balance);
                 } else if ((Date.now() - startTime) / 1000 >= maxSeconds) {
@@ -72,62 +76,69 @@ export class TokenBalanceService {
         });
     }
 
-
     /** Fetches a specific token balance from the blockchain handling multiple tokens per contract */
     private async fetchSingleBalance(token: Token): Promise<Balance> {
-        const session = this.sessionService.currentSession;
-        if (!session?.actor) throw new Error('No valid session.');
+        const context = logger.method('fetchSingleBalance', { token });
+        const session = this.sessionService.current;
+        if (!session?.address) {
+            context.error('No active session.');
+            throw new Error('No valid session.');
+        }
 
-        const client = session.client.v1.chain;
-        if (!client) throw new Error('No valid blockchain client.');
+        if (!session?.network) {
+            context.error('No valid network.');
+            throw new Error('No valid network.');
+        }
 
         try {
             const params = {
                 json: true,
                 code: token.account, // Token contract
-                scope: session.actor.toString(), // Account name
+                scope: session.address.toString(), // Account name
                 table: 'accounts', // EOSIO token table
                 limit: 100, // Fetch up to 100 token entries
             };
+            return new Promise<Balance>((resolve, reject) => {
+                session.network.queryContract(params).subscribe((result: any) => {
+                    if (!result?.rows?.length) {
+                        console.warn(`⚠️ No balance found for ${token.symbol}. Returning zero balance.`);
+                        resolve({ amount: { value: 0, formatted: this.formatBalance(0, token) }, token });
+                    }
 
-            const result = await client.get_table_rows(params);
+                    // Search for the token with the matching symbol in the list of rows
+                    const matchingRow = result.rows.find((row: any) => {
+                        if (row.balance) {
+                            const [amountStr, symbol] = row.balance.split(' ');
+                            return symbol === token.symbol;
+                        }
+                        return false;
+                    });
 
-            if (!result?.rows?.length) {
-                console.warn(`⚠️ No balance found for ${token.symbol}. Returning zero balance.`);
-                return { amount: { raw: 0, formatted: this.formatBalance(0, token) }, token };
-            }
+                    if (!matchingRow) {
+                        console.warn(`⚠️ No balance found for ${token.symbol}. Returning zero balance.`);
+                        resolve({ amount: { value: 0, formatted: this.formatBalance(0, token) }, token });
+                    }
 
-            // Search for the token with the matching symbol in the list of rows
-            const matchingRow = result.rows.find((row: any) => {
-                if (row.balance) {
-                    const [amountStr, symbol] = row.balance.split(' ');
-                    return symbol === token.symbol;
-                }
-                return false;
-            });
-
-            if (!matchingRow) {
-                console.warn(`⚠️ No balance found for ${token.symbol}. Returning zero balance.`);
-                return { amount: { raw: 0, formatted: this.formatBalance(0, token) }, token };
-            }
-
-            const [amountStr, symbol] = matchingRow.balance.split(' ');
-            const rawAmount = parseFloat(amountStr) * Math.pow(10, token.precision);
-            return { amount: { raw: rawAmount, formatted: this.formatBalance(rawAmount, token) }, token };
-
+                    const [amountStr, symbol] = matchingRow.balance.split(' ');
+                    const rawAmount = parseFloat(amountStr) * Math.pow(10, token.precision);
+                    resolve({ amount: { value: rawAmount, formatted: this.formatBalance(rawAmount, token) }, token });
+                });
+           });
         } catch (error) {
             console.error(`❌ Error fetching balance for ${token.symbol}:`, error);
-            return { amount: { raw: 0, formatted: this.formatBalance(0, token) }, token };
+            return { amount: { value: 0, formatted: this.formatBalance(0, token) }, token };
         }
     }
 
     /** Fetches all token balances from blockchain */
     private async fetchAllBalances(): Promise<Balance[]> {
-        const session = this.sessionService.currentSession;
-        if (!session?.actor) throw new Error('No active session.');
+        const session = this.sessionService.current;
+        if (!session?.address) throw new Error('No active session.');
 
-        const client = session.client.v1.chain;
-        if (!client) throw new Error('No valid blockchain client.');
+        if (!session.authenticator.isLogged()) {
+            console.warn('⚠️ User is not logged in. Cannot fetch balances.');
+            return [];
+        }
 
         const tokens = this.tokenListService.getTokensValue();
 
@@ -145,16 +156,16 @@ export class TokenBalanceService {
             const params = {
                 json: true,
                 code: contract,
-                scope: session.actor.toString(),
+                scope: session.address,
                 table: 'accounts',
                 limit: 100,
             };
 
-            const result = await client.get_table_rows(params);
+            const result = await session.network.queryContract(params).toPromise();
 
             // Map each token in the current contract to its balance by searching the result rows
             const balances = tokensByContract[contract].map(token => {
-                const matchingRow = result?.rows?.find((row: any) => {
+                const matchingRow:{balance:string} = result?.rows?.find((row: any) => {
                     if (row.balance) {
                         const [amountStr, symbol] = row.balance.split(' ');
                         return symbol === token.symbol;
@@ -163,11 +174,11 @@ export class TokenBalanceService {
                 });
                 if (!matchingRow) {
                     console.warn(`⚠️ No balance found for ${token.symbol} in contract ${contract}. Returning zero balance.`);
-                    return { amount: { raw: 0, formatted: this.formatBalance(0, token) }, token };
+                    return { amount: { value: 0, formatted: this.formatBalance(0, token) }, token };
                 }
                 const [amountStr, symbol] = matchingRow.balance.split(' ');
                 const rawAmount = parseFloat(amountStr) * Math.pow(10, token.precision);
-                return { amount: { raw: rawAmount, formatted: this.formatBalance(rawAmount, token) }, token };
+                return { amount: { value: rawAmount, formatted: this.formatBalance(rawAmount, token) }, token };
             });
             return balances;
         });
@@ -184,7 +195,7 @@ export class TokenBalanceService {
         const index = currentBalances.findIndex(b => b.token.symbol === balance.token.symbol);
 
         if (index !== -1) {
-            if (currentBalances[index].amount.raw !== balance.amount.raw) {
+            if (currentBalances[index].amount.value !== balance.amount.value) {
                 currentBalances[index] = balance;
                 this.balances$.next([...currentBalances]); // Trigger UI update
             } else {

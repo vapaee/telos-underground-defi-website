@@ -1,14 +1,30 @@
 {
-    "name": "telos-underground-defi-website",
+    "name": "vortdex-website",
     "version": "0.1.0",
     "scripts": {
         "ng": "ng",
-        "start": "ng serve",
+        "w3o": "npm run w3o-core && npm run w3o-antelope && npm run w3o-telos",
+        "w3o-core": "cd src-w3o/w3o-core && npm i && npm run build",
+        "w3o-antelope": "cd src-w3o/w3o-antelope && npm i && npm run build",
+        "w3o-telos": "",
+        "w3o-telos-bk": "cd src-w3o/w3o-telos && npm i && npm run build",
+        "serve": "ng serve",
         "build": "ng build",
         "watch": "ng build --watch --configuration development",
-        "test": "ng test"
+        "clear-core": "cd src-w3o/w3o-core && npm run clear",
+        "clear-antelope": "cd src-w3o/w3o-antelope && npm run clear",
+        "clear-telos": "",
+        "clear-telos-bk": "cd src-w3o/w3o-telos && npm run clear",
+        "clear-w3o": "npm run clear-core; npm run clear-antelope; npm run clear-telos",
+        "clear": "rm -rf node_modules .angular",
+        "test": "ng test",
+        "src": "node scripts/concatenate_src.js"
     },
     "private": true,
+    "for-develop": {
+        "w3o-core": "file:./src-w3o/w3o-core",
+        "w3o-antelope": "file:./src-w3o/w3o-antelope"
+    },
     "dependencies": {
         "@angular/animations": "^19.1.3",
         "@angular/cdk": "^19.2.3",
@@ -24,6 +40,11 @@
         "@ngrx/store-devtools": "^19.0.0",
         "@ngx-translate/core": "^16.0.4",
         "@ngx-translate/http-loader": "^16.0.1",
+        "@vapaee/w3o-antelope": "^1.0.0",
+        "@vapaee/w3o-core": "^1.0.0",
+        "@wharfkit/account": "^1.4.1",
+        "@wharfkit/antelope": "^1.0.13",
+        "@wharfkit/common": "^1.4.2",
         "@wharfkit/session": "^1.4.0",
         "@wharfkit/wallet-plugin-anchor": "^1.4.0",
         "@wharfkit/wallet-plugin-cleos": "^1.2.0",

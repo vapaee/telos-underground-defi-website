@@ -1,10 +1,15 @@
+// src/app/services/redirect.service.ts
 import { Injectable, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { SessionService } from '@app/services/session-kit.service';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { BREAKPOINT } from 'src/types';
+import { BREAKPOINT } from '@app/types';
+import { W3oContextFactory } from '@vapaee/w3o-core';
+
+
+const logger = new W3oContextFactory('RedirectService');
 
 @Injectable({
     providedIn: 'root',
@@ -21,6 +26,7 @@ export class RedirectService implements OnDestroy {
     }
 
     private setupRedirectLogic() {
+        logger.method('setupRedirectLogic');
         let isMobile = false;
 
         // Detect mobile/desktop
@@ -34,6 +40,7 @@ export class RedirectService implements OnDestroy {
         this.sessionService.session$
             .pipe(takeUntil(this.destroy$))
             .subscribe(session => {
+                logger.debug('Redirect - Session changed:', { isMobile, session });
                 if (session) {
                     if (isMobile) {
                         this.router.navigate(['/wallet']);

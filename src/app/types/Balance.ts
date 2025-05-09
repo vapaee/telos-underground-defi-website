@@ -1,3 +1,7 @@
+export type { W3oBalance as Balance } from '@vapaee/w3o-core';
+
+
+/*
 import { Token } from "./Token";
 
 export interface Balance {
@@ -7,3 +11,4 @@ export interface Balance {
     };
     token: Token;
 }
+*/

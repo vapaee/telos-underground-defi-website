@@ -34,7 +34,7 @@
         <p>{{'PAGES.ACCOUNTS.NAME' | translate}}</p>
     </a>
 
-    <a class="c-side-menu__option" routerLink="/" routerLinkActive="active-link" (click)="logout()">
+    <a class="c-side-menu__option" routerLink="/" routerLinkActive="active-link" *ngIf="isLogged" (click)="logout()">
         <lucide-icon [img]="LogoutIcon"></lucide-icon>
         <p>{{'TYPES.BUTTON.LOGOUT' | translate}}</p>
     </a>

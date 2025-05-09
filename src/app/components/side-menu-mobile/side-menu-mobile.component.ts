@@ -34,9 +34,22 @@ export class SideMenuMobileComponent {
     readonly ListTreeIcon = ListTree;
     readonly UsersIcon = Users
 
+    // public isLogged: boolean = false;
+    // constructor(
+    //     public sessionService: SessionService
+    // ) {
+    //     this.sessionService.session$.subscribe((session) => {
+    //         this.isLogged = !!session;
+    //     });
+    // }
+
     constructor(
         public sessionService: SessionService
     ) {}
+
+    get isLogged(): boolean {
+        return !!this.sessionService.current;
+    }
 
     async logout() {
         await this.sessionService.logout();

@@ -3,7 +3,7 @@
     <p>{{ 'PAGES.ACCOUNTS.DESCRIPTION' | translate}}</p>
 
     <ng-container *ngIf="sessionService.session$ | async as session; else loginTemplate">
-        <p class="p-accounts__subtitle">{{ 'PAGES.ACCOUNTS.CONNECTED' | translate}} {{ session.actor }}</p>
+        <p class="p-accounts__subtitle">{{ 'PAGES.ACCOUNTS.CONNECTED' | translate}} {{ session.address }}</p>
         <p class="p-accounts__contained">-<br>-<br>-<br>-</p>
         <a class="p-accounts__add">+ {{ 'PAGES.ACCOUNTS.ADD' | translate}}</a>
     </ng-container>

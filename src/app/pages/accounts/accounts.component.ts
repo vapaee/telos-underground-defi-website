@@ -8,7 +8,6 @@ import { SharedModule } from '@app/shared/shared.module';
     selector: 'app-accounts',
     standalone: true,
     imports: [
-        CommonModule,
         LoginComponent,
         SharedModule
     ],

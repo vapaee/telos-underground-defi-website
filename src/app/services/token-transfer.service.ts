@@ -1,110 +1,82 @@
-import { Injectable } from '@angular/core';
-import { BehaviorSubject, map, Observable } from 'rxjs';
-import { SessionService } from '@app/services/session-kit.service';
-import { TokenBalanceService } from '@app/services/token-balance.service';
-import { TokenListService } from './token-list.service';
-import { Token, TransferStatus, TransferSummary } from 'src/types';
+// src/app/services/token-transfer.service.ts
+
+import { Injectable, inject } from '@angular/core';
+import { Observable } from 'rxjs';
+import {
+    W3oContextFactory,
+    W3oTransferStatus,
+    W3oToken,
+} from '@vapaee/w3o-core';
+import { Web3OctopusService } from './web3-octopus.service';
+import { SessionService } from './session-kit.service';
+
+const logger = new W3oContextFactory('TokenTransferService');
 
 @Injectable({
-    providedIn: 'root'
+    providedIn: 'root',
 })
 export class TokenTransferService {
-    private transferStatus$ = new BehaviorSubject<Map<string, TransferStatus>>(new Map());
-
     constructor(
-        private sessionService: SessionService,
-        private tokenBalanceService: TokenBalanceService,
-        private tokenListService: TokenListService
+        private w3o: Web3OctopusService,
     ) {
-        // Subscribe to session$ to detect changes
-        this.sessionService.session$.subscribe(session => {
-            if (!session) {
-                this.resetAllTransfers(); // Clear all transfer statuses on logout
-            }
-        });
+
     }
 
-    getTransferStatus$(tokenSymbol: string): Observable<TransferStatus> {
-        return this.transferStatus$.asObservable().pipe(
-            map(statusMap => statusMap.get(tokenSymbol) || ({ state: 'none' } as TransferStatus))
-        );
+    /**
+     * Returns an observable of transfer status for the given token symbol
+     * @param tokenSymbol The symbol of the token to track
+     */
+    public getTransferStatus$(tokenSymbol: string): Observable<W3oTransferStatus> {
+        const context = logger.method('getTransferStatus$', { tokenSymbol });
+        return this.w3o.octopus.services.tokens.getTransferStatus(tokenSymbol, context);
     }
 
-    resetTransferCycle(tokenSymbol: string): void {
-        this.setTransferStatus(tokenSymbol, 'none');
-    }
-
-    resetAllTransfers(): void {
-        const tokens = this.tokenListService.getTokensValue();
-        tokens.forEach(token => {
-            this.resetTransferCycle(token.symbol);
-        });
-    }
-
-    setTransferStatus(
-        tokenSymbol: string,
-        state: 'none' | 'success' | 'failure',
-        message?: string,
-        summary: TransferSummary | null = null
-    ) {
-        const statusMap = this.transferStatus$.getValue();
-        statusMap.set(tokenSymbol, { state, message, summary });
-        this.transferStatus$.next(statusMap);
-    }
-
-    async makeTokenTransaction(
-        from: string,
-        to: string,
-        quantity: string,
-        contract: string,
-        memo: string = '',
-        token: Token // Accept the whole Token object instead of just tokenSymbol
-    ): Promise<void> {
-        console.log(`📤 Initiating token transaction: ${quantity} ${token.symbol} from ${from} to ${to}`);
-
-        const session = this.sessionService.currentSession;
-        if (!session) {
-            console.error('❌ No active session. Please log in.');
-            this.setTransferStatus(token.symbol, 'failure', 'No active session.', null);
+    /**
+     * Resets the transfer cycle for the given token symbol
+     * @param tokenSymbol The symbol of the token to reset
+     */
+    public resetTransferCycle(tokenSymbol: string): void {
+        const context = logger.method('resetTransferCycle', { tokenSymbol });
+        const auth = this.w3o.octopus.sessions.current?.authenticator;
+        if (!auth) {
+            context.error('No active session');
             return;
         }
+        this.w3o.octopus.services.tokens.resetTransferCycle(auth, tokenSymbol, context);
+    }
 
-        try {
-            const action = {
-                account: contract,
-                name: 'transfer',
-                authorization: [{ actor: from, permission: 'active' }],
-                data: { from, to, quantity, memo },
-            };
-
-            console.log(`⏳ Sending transaction...`);
-            const transactResult = await session.transact({ actions: [action] });
-
-            const txId = transactResult.response?.['transaction_id'] as string|| 'Unknown TX';
-            console.log(`✅ Transaction Successful: ${txId}`);
-
-            const summary: TransferSummary = {
-                from: session.actor.toString(),
-                to,
-                amount: quantity,
-                transaction: txId,
-            };
-
-            console.log(`🟢 Balance refresh requested for ${token.symbol}.`);
-            this.setTransferStatus(token.symbol, 'success', `Transferred ${quantity} to ${to}. TX: ${txId.substring(0, 10)}`, summary);
-
-            console.log(`🔄 Waiting for balance update for ${token.symbol}...`);
-            this.tokenBalanceService.waitUntilBalanceChanges(token)
-                .then(() => console.log(`✅ Balance updated for ${token.symbol}.`))
-                .catch(error => console.error(`❌ Error updating balance for ${token.symbol}:`, error));
-
-        } catch (error) {
-            console.error('❌ Transaction failed:', error);
-
-            const errorMessage = error instanceof Error ? error.message : 'Transaction failed: Unknown error';
-
-            this.setTransferStatus(token.symbol, 'failure', errorMessage, null);
+    /**
+     * Resets transfer cycles for all tokens
+     */
+    public resetAllTransfers(): void {
+        const context = logger.method('resetAllTransfers');
+        const auth = this.w3o.octopus.sessions.current?.authenticator;
+        if (!auth) {
+            context.error('No active session');
+            return;
         }
+        this.w3o.octopus.services.tokens.resetAllTransfers(auth, context);
+    }
+
+    /**
+     * Transfers tokens using the AntelopeTokensService
+     * @param to Recipient account
+     * @param quantity Quantity string (e.g. '1.0000 TLOS')
+     * @param token W3oToken object
+     * @param memo Memo string
+     */
+    public async transferToken(
+        to: string,
+        quantity: string,
+        token: W3oToken,
+        memo: string = '',
+    ): Promise<void> {
+        const context = logger.method('transferToken', { to, quantity, token, memo });
+        const auth = this.w3o.octopus.sessions.current?.authenticator;
+        if (!auth) {
+            context.error('No active session');
+            return;
+        }
+        await this.w3o.octopus.services.tokens.transferToken(auth, to, quantity, token, memo, context);
     }
 }
-

@@ -1,11 +1,12 @@
-/* To learn more about Typescript configuration file: https://www.typescriptlang.org/docs/handbook/tsconfig-json.html. */
-/* To learn more about Angular compiler options: https://angular.dev/reference/configs/angular-compiler-options. */
 {
     "compileOnSave": false,
     "compilerOptions": {
         "baseUrl": "./", // Set the base URL to the project root
         "paths": {
-        "@app/*": ["src/app/*"] // Define the alias
+            "@app/*": ["./src/app/*"], // Define the alias
+            // Web4Octopus
+            // "@vapaee/w3o-core": [ "./src-w3o/w3o-core/src/index.ts" ],
+            // "@vapaee/w3o-antelope": [ "./src-w3o/w3o-antelope/src/index.ts" ]
         },
         "outDir": "./dist/out-tsc",
         "strict": true,
@@ -20,7 +21,7 @@
         "moduleResolution": "bundler",
         "importHelpers": true,
         "target": "ES2022",
-        "module": "ES2022"
+        "module": "ES2022",
     },
     "angularCompilerOptions": {
         "enableI18nLegacyMessageIdFormat": false,
