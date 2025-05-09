@@ -58,7 +58,7 @@ export class Web3OctopusService implements OnDestroy {
                 // list of supported Antelope networks
                 networks: [
                     new TelosZeroNetwork({}, context),
-                    // new TelosZeroTestnetNetwork({}, context),
+                    new TelosZeroTestnetNetwork({}, context),
                 ]
             }
             this.octopus.addNetworkSupport(telosSupportSettings, context);

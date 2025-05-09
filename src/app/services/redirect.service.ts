@@ -26,7 +26,7 @@ export class RedirectService implements OnDestroy {
     }
 
     private setupRedirectLogic() {
-        const context = logger.method('setupRedirectLogic');
+        logger.method('setupRedirectLogic');
         let isMobile = false;
 
         // Detect mobile/desktop

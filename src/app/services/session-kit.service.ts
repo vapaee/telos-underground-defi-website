@@ -1,7 +1,6 @@
 // src/app/services/session-kit.service.ts
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { Session } from '@wharfkit/session';
 import { LocalStorageService } from './local-storage.service';
 import { Web3OctopusService } from './web3-octopus.service';
 import { W3oContextFactory, W3oSession } from '@vapaee/w3o-core';
@@ -21,8 +20,8 @@ export class SessionService {
     constructor(
         private w3o : Web3OctopusService, // inject the Web3Octopus instance
     ) {
-        const context = logger.method('constructor');
-        this.session$ = this.w3o.octopus.sessions.current$.asObservable();
+        logger.method('constructor');
+        this.session$ = this.w3o.octopus.sessions.current$;
         this.session$.subscribe((session: W3oSession | null) => {
             let user = null;
             if (session) {
@@ -34,11 +33,6 @@ export class SessionService {
             }, 10);
         });
     }
-
-    // Expose current session as a getter
-    // get currentSession(): Session | null {
-    //     return this.w3o.octopus.sessions.current$.value?.authenticator.get<Session>('wharfkit.session') ?? null;
-    // }
 
     // Returns the current w3oSession
     get current(): W3oSession | null {

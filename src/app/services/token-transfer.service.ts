@@ -16,21 +16,11 @@ const logger = new W3oContextFactory('TokenTransferService');
     providedIn: 'root',
 })
 export class TokenTransferService {
-    // private w3o = inject(Web3OctopusService);
-    // private sessionService = inject(SessionService);
-
     constructor(
         private w3o: Web3OctopusService,
     ) {
-        // Constructor injection for better testability
-    }
 
-    /**
-     * Shortcut to access the AntelopeTokensService from W3o
-     */
-    // private get tokensService() {
-    //     return this.w3o.octopus.services.tokens;
-    // }
+    }
 
     /**
      * Returns an observable of transfer status for the given token symbol
