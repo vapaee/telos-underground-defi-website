@@ -3,8 +3,8 @@
 // by using only this color variables components get styled in a global way by automatically
 // adapting to light/dark & Hue themeing, mantaining good visual contrast and consistency */
 :root {
-    --h0: 190; // hue 0
-    --h1: 220; // hue 1
+    --h0: 0; // The actual default value is defined in services/local-storage.service.ts
+    --h1: 0; // The actual default value is defined in services/local-storage.service.ts
 }
 
 /* Dark Theme default*/
