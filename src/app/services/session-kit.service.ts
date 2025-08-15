@@ -43,8 +43,8 @@ export class SessionService {
     async login() {
         const context = logger.method('login');
         try {
-            const network = this.w3o.octopus.networks.current.name;
-            this.w3o.octopus.auth.login(network, 'antelope', 'anchor', context);
+            const network = this.w3o.octopus.networks.current;
+            this.w3o.octopus.auth.login(network.name, network.type, context);
         } catch (error) {
             console.error('Login failed:', error);
             throw error;
@@ -75,7 +75,8 @@ export class SessionService {
     }
 
     validateAccount(address: string): Observable<boolean> {
-        const context = logger.method('validateAccount');
+        const sender = this.current?.address;
+        const context = logger.method('validateAccount', { sender });
         const network = this.w3o.octopus.networks.current;
         return network.validateAccount(address, context);
     }

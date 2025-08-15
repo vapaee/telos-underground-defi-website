@@ -16,12 +16,17 @@ import {
 // import the classes to support Antelope (EOSIO) networks
 import {
     AntelopeTokensService,                // extends W3oService
-    // AntelopeBalancesService,              // extends W3oService
-    // AntelopeTransferService,              // extends W3oService
-    AntelopeAuthAnchor,
+    AntelopeResourcesService,
+    AntelopeChainSupport,
     TelosZeroNetwork,
     TelosZeroTestnetNetwork,
 } from '@vapaee/w3o-antelope';
+// import the classes to support Ethereum networks
+import {
+    EthereumChainSupport,
+    EthereumTokensService,
+    TelosEVMNetwork,
+} from '@vapaee/w3o-ethereum';
 
 import { VortDEXw3oServices } from '@app/types';
 
@@ -39,22 +44,19 @@ const logger = new W3oContextFactory('Web3OctopusService');
 })
 export class Web3OctopusService implements OnDestroy {
     private destroy$ = new Subject<void>();
-    public octopus: Web3Octopus<VortDEXw3oServices>;
-    constructor(
-    ) {
+    public octopus!: Web3Octopus<VortDEXw3oServices>;
+    constructor() {
         const context = logger.method('constructor');
-        const octopus = new Web3Octopus<VortDEXw3oServices>(context);
-        this.octopus = octopus;
-        window.w3o = octopus; // assign the instance to the window object so it can be accessed from anywhere
         try {
+            const octopus = new Web3Octopus<VortDEXw3oServices>(context);
+            this.octopus = octopus;
+            window.w3o = octopus; // assign the instance to the window object so it can be accessed from anywhere
             // ---- Register Telos/EOS support ----
             const telosSupportSettings: W3oNetworkSupportSettings = {
                 // Network type
                 type: 'antelope',
-                // list of supported wallets for Antelope networks
-                auth: [
-                    new AntelopeAuthAnchor(context)
-                ],
+                // chain support implementation
+                chain: new AntelopeChainSupport(context),
                 // list of supported Antelope networks
                 networks: [
                     new TelosZeroNetwork({}, context),
@@ -63,12 +65,22 @@ export class Web3OctopusService implements OnDestroy {
             }
             this.octopus.addNetworkSupport(telosSupportSettings, context);
 
+            // ---- Register Telos EVM support ----
+            const telosEvmSupportSettings: W3oNetworkSupportSettings = {
+                type: 'ethereum',
+                chain: new EthereumChainSupport(context),
+                networks: [
+                    new TelosEVMNetwork({}, context),
+                ]
+            }
+            this.octopus.addNetworkSupport(telosEvmSupportSettings, context);
+
             // ---- Register the services ----
             // paths must match the keys in the IMyServices interface
             const services: W3oService[] = [
-                new AntelopeTokensService('tokens', context),
-                // new AntelopeBalancesService('zero.balances', context),
-                // new AntelopeTransferService('zero.transfer', context),
+                new AntelopeTokensService('antelope.tokens', context),
+                new AntelopeResourcesService('antelope.resources', context),
+                new EthereumTokensService('ethereum.tokens', context),
             ];
             octopus.registerServices(services);
             octopus.init(

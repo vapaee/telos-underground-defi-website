@@ -2,23 +2,8 @@
     "PAGES": {
         "HOME": {
             "NAME": "Home",
-            "TITLE": "DEX",
-            "DESCRIPTION": "A peer-to-peer marketplace where transactions occur directly between cryptocurrency traders."
-        },
-        "TRADE": {
-            "NAME": "Trade",
-            "TITLE": "Trading Page",
-            "DESCRIPTION": "Description!"
-        },
-        "EXPLORE": {
-            "NAME": "Explore",
-            "TITLE": "Exploration Page",
-            "DESCRIPTION": "Discover new content here!"
-        },
-        "POOL": {
-            "NAME": "Pool",
-            "TITLE": "Liquidity Pool Page",
-            "DESCRIPTION": "Description!"
+            "TITLE": "VortDEX - Telos DEX",
+            "DESCRIPTION": "The best decentralized exchange (DEX) built on the Telos Zero blockchain."
         },
         "WALLET": {
             "NAME": "Wallet",
@@ -26,6 +11,12 @@
             "TITLE": "Wallet",
             "DESCRIPTION": "Your token balance",
             "LOADING": "Loading..."
+        },
+        "RESOURCES": {
+            "NAME": "Resources",
+            "TITLE": "Resources",
+            "DESCRIPTION": "Account CPU, NET and RAM usage",
+            "NOT_APPLICABLE": "Not applicable"
         },
         "PREFERENCES": {
             "NAME": "Preferences",
@@ -83,6 +74,7 @@
                 }
             },
             "SUCCESS": "✅ Transaction Successful",
+            "SUCCSES": "✅ Transaction Successful",
             "FAILURE": "❌ Transaction Failed"
         }
     },

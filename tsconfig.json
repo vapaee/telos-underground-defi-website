@@ -1,27 +1,25 @@
 {
     "compileOnSave": false,
     "compilerOptions": {
-        "baseUrl": "./", // Set the base URL to the project root
         "paths": {
             "@app/*": ["./src/app/*"], // Define the alias
-            // Web4Octopus
-            // "@vapaee/w3o-core": [ "./src-w3o/w3o-core/src/index.ts" ],
-            // "@vapaee/w3o-antelope": [ "./src-w3o/w3o-antelope/src/index.ts" ]
+            // Web3Octopus
+            "@vapaee/w3o-core":     [ "../web3-octopus/w3o-core/src" ],
+            "@vapaee/w3o-antelope": [ "../web3-octopus/w3o-antelope/src" ],
+            "@vapaee/w3o-ethereum": [ "../web3-octopus/w3o-ethereum/src" ]
         },
+        "baseUrl": "./", // Set the base URL to the project root
         "outDir": "./dist/out-tsc",
-        "strict": true,
-        "noImplicitOverride": true,
-        "noPropertyAccessFromIndexSignature": true,
-        "noImplicitReturns": true,
-        "noFallthroughCasesInSwitch": true,
-        "skipLibCheck": true,
-        "isolatedModules": true,
-        "esModuleInterop": true,
-        "experimentalDecorators": true,
-        "moduleResolution": "bundler",
+        "downlevelIteration": true,
+        "allowSyntheticDefaultImports": true,
+        "useDefineForClassFields": false,
+        "moduleResolution": "node",
         "importHelpers": true,
         "target": "ES2022",
-        "module": "ES2022",
+        "module": "ES2020",
+        "typeRoots": [
+            "node_modules/@types"
+        ],
     },
     "angularCompilerOptions": {
         "enableI18nLegacyMessageIdFormat": false,
