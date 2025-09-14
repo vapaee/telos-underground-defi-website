@@ -1,0 +1,67 @@
+@use 'mixin' as *;
+
+:host {
+    @include page;
+}
+
+.p-accounts {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+
+    &__title {
+        @include text-title;
+    }
+
+    &__subtitle {
+        @include text-subtitle;
+    }
+
+    &__sessions {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    &__session {
+        @include container-border;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    &__network-icon {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+    }
+
+    &__account {
+        flex: 1;
+    }
+
+    &__logout {
+        cursor: pointer;
+    }
+
+    &__login {
+        margin-top: 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    &__network-select {
+        margin-right: 10px;
+        padding: 5px 12px;
+        border-radius: 20px;
+        border: 1px solid var(--c-background-2);
+        background-color: var(--c-background-1);
+        color: var(--c-foreground-0);
+    }
+
+    &__login-btn {
+        @include button-0;
+    }
+}

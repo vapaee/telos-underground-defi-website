@@ -1,4 +1,4 @@
-
+## Install
 
 ```bash
 # clone the repo
@@ -7,10 +7,31 @@ cd telos-underground
 # use the correct npm version to install and run it
 nvm use v22.12.0;
 npm i
-npx ng serve
+npm run serve
 ```
+## Icon library
+
+Implementation of the lucide icon library for Angular applications.
+https://lucide.dev/guide/packages/lucide-angular
+
+Icon list.
+https://lucide.dev/icons/
+
+```bash
+code node_modules/lucide-angular/icons/lucide-icons.d.ts
+```
+
+
 
 Fast
 ```bash
-nvm use v22.12.0; rm .angular/ -fr; npx ng serve
+nvm use v22.12.0; rm .angular/ node_modules -fr; npm i; npx ng serve
 ```
+
+
+Compile Web3Octopus
+```bash
+nvm use v22.12.0; rm .angular/ node_modules -fr; npm i; npm run serve
+```
+
+
